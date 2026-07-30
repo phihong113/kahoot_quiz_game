@@ -173,11 +173,16 @@
         debug: 1
       });
 
+      let joinTimeout = setTimeout(() => {
+        socket.trigger('join-error', 'Kết nối tới phòng thi đấu quá thời gian. Vui lòng kiểm tra lại Mã PIN hoặc thử lại!');
+      }, 6000);
+
       this.peer.on('open', () => {
         const conn = this.peer.connect(peerId, { reliable: true });
         this.hostConn = conn;
 
         conn.on('open', () => {
+          clearTimeout(joinTimeout);
           conn.send({
             event: 'join-room',
             data: { pin, nickname, avatar }
@@ -186,17 +191,22 @@
 
         conn.on('data', (msg) => {
           if (msg.event) {
+            if (msg.event === 'joined-successfully' || msg.event === 'join-error') {
+              clearTimeout(joinTimeout);
+            }
             socket.trigger(msg.event, msg.data);
           }
         });
 
         conn.on('close', () => {
+          clearTimeout(joinTimeout);
           alert('Kết nối đến máy chủ giáo viên đã bị ngắt!');
           showScreen('home');
         });
       });
 
       this.peer.on('error', (err) => {
+        clearTimeout(joinTimeout);
         console.warn('Peer join error:', err);
         socket.trigger('join-error', 'Không tìm thấy Mã Game PIN này hoặc phòng đã đóng!');
       });
@@ -1797,6 +1807,13 @@
       state.studentInfo.nickname = nickname;
       state.currentPin = pin;
 
+      const btnJoin = document.getElementById('btnJoinGame');
+      if (btnJoin) {
+        btnJoin.disabled = true;
+        if (!btnJoin.dataset.origText) btnJoin.dataset.origText = btnJoin.innerHTML;
+        btnJoin.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang vào...';
+      }
+
       if (socket) {
         socket.emit('join-room', {
           pin,
@@ -1883,12 +1900,22 @@
 
     // Joined Successfully (Student)
     socket.on('joined-successfully', ({ pin, nickname, avatar }) => {
+      const btnJoin = document.getElementById('btnJoinGame');
+      if (btnJoin && btnJoin.dataset.origText) {
+        btnJoin.disabled = false;
+        btnJoin.innerHTML = btnJoin.dataset.origText;
+      }
       document.getElementById('studentMyAvatar').innerText = avatar;
       document.getElementById('studentMyName').innerText = nickname;
       showScreen('studentWaiting');
     });
 
     socket.on('join-error', (msg) => {
+      const btnJoin = document.getElementById('btnJoinGame');
+      if (btnJoin && btnJoin.dataset.origText) {
+        btnJoin.disabled = false;
+        btnJoin.innerHTML = btnJoin.dataset.origText;
+      }
       alert(`Lỗi: ${msg}`);
     });
 
