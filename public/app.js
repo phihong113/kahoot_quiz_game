@@ -3,14 +3,19 @@
    ========================================================================== */
 
 (function () {
-  // Socket.io initialization with Server URL detection
+  // Socket.io initialization with Automatic Dual Mode (Local vs Cloud Backend)
+  const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
   const savedSocketUrl = localStorage.getItem('qm_socket_server_url');
-  let socketServerUrl = savedSocketUrl || undefined;
+  
+  // If running locally -> connect to localhost server (http://localhost:3000)
+  // If running online (Vercel) -> connect to cloud Socket.io backend server
+  const cloudBackendUrl = 'https://kahoot-quiz-game-backend.onrender.com';
+  let socketServerUrl = isLocal ? undefined : (savedSocketUrl || cloudBackendUrl);
 
   const socket = typeof io !== 'undefined' ? io(socketServerUrl, {
     transports: ['polling', 'websocket'],
     reconnection: true,
-    reconnectionAttempts: 15,
+    reconnectionAttempts: 20,
     timeout: 10000
   }) : null;
 
