@@ -120,6 +120,11 @@ io.on('connection', (socket) => {
       return socket.emit('join-error', 'Trò chơi đã bắt đầu, không thể tham gia!');
     }
 
+    // Limit non-activated accounts to 1 student
+    if (!room.isVip && Object.keys(room.players).length >= 1) {
+      return socket.emit('join-error', 'Tài khoản chưa được kích hoạt chỉ cho phép tối đa 1 học sinh tham gia phòng!');
+    }
+
     // Check duplicate nickname
     const nameExists = Object.values(room.players).some(
       (p) => p.nickname.trim().toLowerCase() === nickname.trim().toLowerCase()

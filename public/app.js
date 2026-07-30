@@ -413,7 +413,7 @@
   function hostQuiz(quiz) {
     if (!socket) return alert('Không thể kết nối đến Server Socket.io!');
     state.currentQuiz = quiz;
-    socket.emit('create-room', { quiz });
+    socket.emit('create-room', { quiz, isVip: licenseState.isVip });
   }
 
   // ==================== QUESTION PARSER (EXCEL / CSV / TEXT / JSON) ====================
