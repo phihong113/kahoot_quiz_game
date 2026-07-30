@@ -1685,7 +1685,7 @@
   }
 
   // ==================== GOOGLE SHEETS & OAUTH LICENSE MANAGEMENT ====================
-  let GOOGLE_SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbwYOUR_GOOGLE_APPS_SCRIPT_WEBAPP_ID/exec';
+  let GOOGLE_SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbyaJgi_twiKpeY_TtvVQ4RX9iTRRXjDD2pPwxVsBTjuJrOg0cUYKZNRPMDBEI2UKzgOOw/exec';
   let GOOGLE_CLIENT_ID = '817345480416-riq2vgigkj27nnqs8uqrofot0oe4t5pp.apps.googleusercontent.com';
 
   const licenseState = {
