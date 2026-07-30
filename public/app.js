@@ -4,7 +4,12 @@
 
 (function () {
   // Socket.io initialization
-  const socket = typeof io !== 'undefined' ? io() : null;
+  const socket = typeof io !== 'undefined' ? io({
+    transports: ['polling', 'websocket'],
+    reconnection: true,
+    reconnectionAttempts: 10,
+    timeout: 10000
+  }) : null;
 
   // Sound Engine using Web Audio API
   let audioCtx = null;
@@ -411,7 +416,10 @@
 
   // Host Quiz
   function hostQuiz(quiz) {
-    if (!socket) return alert('Không thể kết nối đến Server Socket.io!');
+    if (!socket) return alert('Không thể kết nối đến Thư viện Socket.io! Vui lòng tải lại trang.');
+    if (!socket.connected) {
+      socket.connect();
+    }
     state.currentQuiz = quiz;
     socket.emit('create-room', { quiz, isVip: licenseState.isVip });
   }
