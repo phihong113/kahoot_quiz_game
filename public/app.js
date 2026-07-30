@@ -3,21 +3,386 @@
    ========================================================================== */
 
 (function () {
-  // Socket.io initialization with Automatic Dual Mode (Local vs Cloud Backend)
-  const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-  const savedSocketUrl = localStorage.getItem('qm_socket_server_url');
-  
-  // If running locally -> connect to localhost server (http://localhost:3000)
-  // If running online (Vercel) -> connect to cloud Socket.io backend server
-  const cloudBackendUrl = 'https://kahoot-quiz-game-backend.onrender.com';
-  let socketServerUrl = isLocal ? undefined : (savedSocketUrl || cloudBackendUrl);
-
-  const socket = typeof io !== 'undefined' ? io(socketServerUrl, {
+  // Event listeners registry & Real Socket.io client
+  const eventListeners = {};
+  const realSocket = typeof io !== 'undefined' ? io({
     transports: ['polling', 'websocket'],
     reconnection: true,
-    reconnectionAttempts: 20,
-    timeout: 10000
+    reconnectionAttempts: 3,
+    timeout: 2500
   }) : null;
+
+  // PeerJS WebRTC Engine for Serverless (Vercel) Online Multiplayer
+  const peerEngine = {
+    peer: null,
+    isHost: false,
+    hostConn: null,
+    clientConns: {},
+    room: null,
+
+    handleEmit(event, data) {
+      if (event === 'create-room') {
+        this.createRoom(data.quiz, data.isVip);
+      } else if (event === 'join-room') {
+        this.joinRoom(data.pin, data.nickname, data.avatar);
+      } else if (event === 'start-game') {
+        this.startGame();
+      } else if (event === 'submit-answer') {
+        this.submitAnswer(data.choiceIndex);
+      } else if (event === 'next-step') {
+        this.nextStep();
+      } else if (event === 'kick-player') {
+        this.kickPlayer(data.socketId);
+      }
+    },
+
+    createRoom(quiz, isVip) {
+      this.isHost = true;
+      const pin = Math.floor(100000 + Math.random() * 900000).toString();
+      const peerId = 'qm-pin-' + pin;
+
+      this.room = {
+        pin,
+        quiz,
+        isVip: !!isVip,
+        state: 'LOBBY',
+        currentQuestionIndex: 0,
+        players: {},
+        answers: {},
+        timerInterval: null,
+        timeLeft: 0
+      };
+
+      if (typeof Peer !== 'undefined') {
+        if (this.peer) this.peer.destroy();
+        this.peer = new Peer(peerId);
+
+        this.peer.on('open', () => {
+          socket.trigger('room-created', {
+            pin,
+            quiz,
+            localIp: window.location.host,
+            port: ''
+          });
+        });
+
+        this.peer.on('connection', (conn) => {
+          conn.on('data', (msg) => {
+            if (msg.event === 'join-room') {
+              this.handleStudentJoin(conn, msg.data);
+            } else if (msg.event === 'submit-answer') {
+              this.handleStudentAnswer(conn, msg.data);
+            }
+          });
+
+          conn.on('close', () => {
+            delete this.clientConns[conn.peer];
+            if (this.room && this.room.players[conn.peer]) {
+              delete this.room.players[conn.peer];
+              const playerList = Object.values(this.room.players);
+              this.broadcastToRoom('update-player-list', playerList);
+              socket.trigger('update-player-list', playerList);
+            }
+          });
+        });
+
+        this.peer.on('error', (err) => {
+          console.warn('Peer host error:', err);
+          if (err.type === 'unavailable-id') {
+            this.createRoom(quiz, isVip);
+          }
+        });
+      } else {
+        alert('Thư viện WebRTC chưa tải xong! Vui lòng làm mới trang.');
+      }
+    },
+
+    handleStudentJoin(conn, { pin, nickname, avatar }) {
+      if (!this.room) return;
+      if (this.room.state !== 'LOBBY') {
+        return conn.send({ event: 'join-error', data: 'Trò chơi đã bắt đầu, không thể tham gia!' });
+      }
+      if (!this.room.isVip && Object.keys(this.room.players).length >= 1) {
+        return conn.send({ event: 'join-error', data: 'Tài khoản chưa được kích hoạt chỉ cho phép tối đa 1 học sinh tham gia phòng!' });
+      }
+      const nameExists = Object.values(this.room.players).some(p => p.nickname.trim().toLowerCase() === nickname.trim().toLowerCase());
+      if (nameExists) {
+        return conn.send({ event: 'join-error', data: 'Tên biệt danh này đã có người dùng trong phòng!' });
+      }
+
+      const player = {
+        socketId: conn.peer,
+        nickname: nickname.trim(),
+        avatar: avatar || '🐱',
+        score: 0,
+        streak: 0,
+        lastPointsGained: 0,
+        lastAnswerCorrect: false
+      };
+
+      this.room.players[conn.peer] = player;
+      this.clientConns[conn.peer] = conn;
+
+      conn.send({
+        event: 'joined-successfully',
+        data: { pin, nickname: player.nickname, avatar: player.avatar, quizTitle: this.room.quiz.title }
+      });
+
+      const playerList = Object.values(this.room.players);
+      this.broadcastToRoom('update-player-list', playerList);
+      socket.trigger('update-player-list', playerList);
+    },
+
+    joinRoom(pin, nickname, avatar) {
+      this.isHost = false;
+      const peerId = 'qm-pin-' + pin;
+      if (typeof Peer === 'undefined') return alert('Thư viện WebRTC chưa sẵn sàng!');
+
+      if (this.peer) this.peer.destroy();
+      this.peer = new Peer();
+
+      this.peer.on('open', () => {
+        const conn = this.peer.connect(peerId);
+        this.hostConn = conn;
+
+        conn.on('open', () => {
+          conn.send({
+            event: 'join-room',
+            data: { pin, nickname, avatar }
+          });
+        });
+
+        conn.on('data', (msg) => {
+          if (msg.event) {
+            socket.trigger(msg.event, msg.data);
+          }
+        });
+
+        conn.on('close', () => {
+          alert('Kết nối đến máy chủ giáo viên đã bị ngắt!');
+          showScreen('home');
+        });
+      });
+
+      this.peer.on('error', (err) => {
+        console.warn('Peer join error:', err);
+        socket.trigger('join-error', 'Không tìm thấy Mã Game PIN này hoặc phòng đã đóng!');
+      });
+    },
+
+    startGame() {
+      if (!this.room) return;
+      this.room.currentQuestionIndex = 0;
+      this.sendQuestion();
+    },
+
+    sendQuestion() {
+      const room = this.room;
+      if (!room || !room.quiz || !room.quiz.questions) return;
+      const qIndex = room.currentQuestionIndex;
+      const q = room.quiz.questions[qIndex];
+      if (!q) return;
+
+      room.state = 'QUESTION';
+      room.timeLeft = q.timeLimit || 20;
+      room.answers[qIndex] = {};
+
+      const qData = {
+        index: qIndex,
+        total: room.quiz.questions.length,
+        questionText: q.questionText,
+        options: q.options,
+        timeLimit: room.timeLeft
+      };
+
+      socket.trigger('host-question-start', qData);
+      this.broadcastToRoom('player-question-start', qData);
+
+      if (room.timerInterval) clearInterval(room.timerInterval);
+      room.timerInterval = setInterval(() => {
+        room.timeLeft--;
+        socket.trigger('timer-tick', room.timeLeft);
+        this.broadcastToRoom('timer-tick', room.timeLeft);
+
+        if (room.timeLeft <= 0) {
+          clearInterval(room.timerInterval);
+          this.revealResults();
+        }
+      }, 1000);
+    },
+
+    handleStudentAnswer(conn, { choiceIndex }) {
+      const room = this.room;
+      if (!room || room.state !== 'QUESTION') return;
+
+      const player = room.players[conn.peer];
+      if (!player) return;
+
+      const qIndex = room.currentQuestionIndex;
+      if (!room.answers[qIndex]) room.answers[qIndex] = {};
+      if (room.answers[qIndex][conn.peer] !== undefined) return;
+
+      const question = room.quiz.questions[qIndex];
+      const isCorrect = choiceIndex === question.correctIndex;
+      const timeLimit = question.timeLimit || 20;
+      const timeRatio = Math.max(0, room.timeLeft / timeLimit);
+
+      let pointsGained = 0;
+      if (isCorrect) {
+        player.streak += 1;
+        const streakBonus = Math.min(player.streak - 1, 5) * 100;
+        pointsGained = Math.round(1000 * (0.5 + 0.5 * timeRatio)) + streakBonus;
+        player.score += pointsGained;
+        player.lastAnswerCorrect = true;
+        player.lastPointsGained = pointsGained;
+      } else {
+        player.streak = 0;
+        player.lastAnswerCorrect = false;
+        player.lastPointsGained = 0;
+      }
+
+      room.answers[qIndex][conn.peer] = { choiceIndex, isCorrect, pointsGained };
+
+      conn.send({
+        event: 'answer-received',
+        data: { isCorrect, pointsGained, totalScore: player.score, streak: player.streak }
+      });
+
+      const totalAnswered = Object.keys(room.answers[qIndex]).length;
+      const totalPlayers = Object.keys(room.players).length;
+
+      socket.trigger('answer-count-update', { answeredCount: totalAnswered, totalPlayers });
+
+      if (totalAnswered >= totalPlayers && totalPlayers > 0) {
+        clearInterval(room.timerInterval);
+        this.revealResults();
+      }
+    },
+
+    submitAnswer(choiceIndex) {
+      if (this.hostConn) {
+        this.hostConn.send({
+          event: 'submit-answer',
+          data: { choiceIndex }
+        });
+      }
+    },
+
+    revealResults() {
+      const room = this.room;
+      if (!room) return;
+      room.state = 'ANSWER_REVEAL';
+
+      const qIndex = room.currentQuestionIndex;
+      const question = room.quiz.questions[qIndex];
+      const answersMap = room.answers[qIndex] || {};
+      const stats = [0, 0, 0, 0];
+
+      Object.values(answersMap).forEach(ans => {
+        if (ans.choiceIndex >= 0 && ans.choiceIndex < 4) {
+          stats[ans.choiceIndex]++;
+        }
+      });
+
+      const revealData = {
+        correctIndex: question.correctIndex,
+        explanation: question.explanation || '',
+        stats
+      };
+
+      socket.trigger('question-reveal', revealData);
+      this.broadcastToRoom('question-reveal', revealData);
+    },
+
+    nextStep() {
+      const room = this.room;
+      if (!room) return;
+
+      if (room.state === 'ANSWER_REVEAL') {
+        room.state = 'LEADERBOARD';
+        const leaderboard = Object.values(room.players)
+          .map(p => ({ socketId: p.socketId, nickname: p.nickname, avatar: p.avatar, score: p.score, streak: p.streak, lastPointsGained: p.lastPointsGained }))
+          .sort((a, b) => b.score - a.score);
+
+        const lbData = { leaderboard };
+        socket.trigger('show-leaderboard', lbData);
+        this.broadcastToRoom('show-leaderboard', lbData);
+      } else if (room.state === 'LEADERBOARD') {
+        if (room.currentQuestionIndex < room.quiz.questions.length - 1) {
+          room.currentQuestionIndex++;
+          this.sendQuestion();
+        } else {
+          room.state = 'FINISHED';
+          const leaderboard = Object.values(room.players)
+            .map(p => ({ socketId: p.socketId, nickname: p.nickname, avatar: p.avatar, score: p.score, streak: p.streak, lastPointsGained: p.lastPointsGained }))
+            .sort((a, b) => b.score - a.score);
+
+          const finishData = { leaderboard };
+          socket.trigger('game-over', finishData);
+          this.broadcastToRoom('game-over', finishData);
+        }
+      }
+    },
+
+    kickPlayer(socketId) {
+      if (this.room && this.room.players[socketId]) {
+        delete this.room.players[socketId];
+        const conn = this.clientConns[socketId];
+        if (conn) {
+          conn.send({ event: 'kicked', data: {} });
+          conn.close();
+          delete this.clientConns[socketId];
+        }
+        const playerList = Object.values(this.room.players);
+        this.broadcastToRoom('update-player-list', playerList);
+        socket.trigger('update-player-list', playerList);
+      }
+    },
+
+    broadcastToRoom(event, data) {
+      Object.values(this.clientConns).forEach(conn => {
+        try {
+          conn.send({ event, data });
+        } catch (e) {}
+      });
+    }
+  };
+
+  // Unified Socket Adapter Interface
+  const socket = {
+    connected: false,
+    on(event, fn) {
+      if (!eventListeners[event]) eventListeners[event] = [];
+      eventListeners[event].push(fn);
+      if (realSocket) {
+        realSocket.on(event, fn);
+      }
+    },
+    emit(event, data) {
+      if (realSocket && realSocket.connected) {
+        realSocket.emit(event, data);
+      } else {
+        peerEngine.handleEmit(event, data);
+      }
+    },
+    trigger(event, data) {
+      if (eventListeners[event]) {
+        eventListeners[event].forEach(fn => fn(data));
+      }
+    },
+    connect() {
+      if (realSocket) realSocket.connect();
+    }
+  };
+
+  if (realSocket) {
+    realSocket.on('connect', () => {
+      socket.connected = true;
+    });
+    realSocket.on('disconnect', () => {
+      socket.connected = false;
+    });
+  }
 
   // Sound Engine using Web Audio API
   let audioCtx = null;
@@ -424,28 +789,7 @@
 
   // Host Quiz
   function hostQuiz(quiz) {
-    if (!socket) return alert('Thư viện Socket.io chưa sẵn sàng! Vui lòng tải lại trang.');
-
     state.currentQuiz = quiz;
-
-    if (!socket.connected) {
-      socket.connect();
-      
-      const connectHandler = () => {
-        socket.emit('create-room', { quiz, isVip: licenseState.isVip });
-        socket.off('connect', connectHandler);
-      };
-      socket.on('connect', connectHandler);
-
-      setTimeout(() => {
-        if (!socket.connected && window.location.hostname.includes('vercel.app')) {
-          alert('⚠️ LƯU Ý KHI CHẠY TRÊN VERCEL:\n\nVercel là nền tảng Web Serverless tĩnh nên không duy trì kết nối Socket.io 24/7 trực tiếp trên cloud được.\n\n📌 ĐỂ MỞ PHÒNG THI ĐẤU MƯỢT MÀ TRONG LỚP HỌC:\nThầy/cô mở thư mục project trên máy tính, gõ lệnh:\n   npm start\nSau đó truy cập http://localhost:3000 để bấm HOST GAME và cho học sinh quét mã QR tham gia thi đấu!');
-        }
-      }, 3500);
-
-      return;
-    }
-
     socket.emit('create-room', { quiz, isVip: licenseState.isVip });
   }
 
