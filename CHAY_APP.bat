@@ -21,4 +21,10 @@ if not exist node_modules (
 echo.
 echo [2/2] Dang mo Server & Trinh duyet...
 start http://localhost:3000
+echo.
+echo ====================================================
+echo  MO PHONG ONLINE CHO HOC SINH DUNG 4G/5G (TUY CHON):
+echo  Mo 1 cua so moi va go lenh: npx localtunnel --port 3000
+echo ====================================================
+echo.
 npm start
