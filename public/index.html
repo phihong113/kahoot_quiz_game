@@ -528,44 +528,24 @@
           <div id="licenseInputArea" class="license-input-form">
             
             <!-- OFFICIAL GOOGLE OAUTH 2.0 SIGN-IN SECTION -->
-            <div class="google-auth-box" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.18); border-radius: 16px; padding: 1.25rem; margin-bottom: 1.2rem; text-align: center;">
-              <h4 style="color: #ffcc00; margin-bottom: 0.5rem; font-size: 1.05rem;"><i class="fa-brands fa-google"></i> Đăng Nhập Tài Khoản Google Chính Thức</h4>
-              <p style="font-size: 0.85rem; opacity: 0.85; margin-bottom: 1rem;">Đăng nhập bằng tài khoản Google để xác thực danh tính thực và kiểm tra trạng thái kích hoạt trên Google Sheet.</p>
+            <div class="google-auth-box" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.18); border-radius: 16px; padding: 1.5rem; margin-bottom: 1.2rem; text-align: center;">
+              <h4 style="color: #ffcc00; margin-bottom: 0.5rem; font-size: 1.1rem;"><i class="fa-brands fa-google"></i> Đăng Nhập Tài Khoản Google Giáo Viên</h4>
+              <p style="font-size: 0.88rem; opacity: 0.85; margin-bottom: 1.25rem;">Đăng nhập bằng tài khoản Google để xác thực danh tính thực và tự động kiểm tra kích hoạt trên Google Sheet.</p>
               
               <!-- Container where official Google Sign-In button is rendered -->
-              <div id="googleSignInBtnContainer" style="display: flex; justify-content: center; margin-bottom: 0.75rem;"></div>
-
-              <!-- CLIENT ID SETUP FOR ADMIN / OWNER -->
-              <div id="clientIdSetupArea" style="margin-top: 0.75rem; border-top: 1px dashed rgba(255,255,255,0.2); padding-top: 0.75rem; text-align: left;">
-                <label style="font-size: 0.82rem; opacity: 0.9; display: block; margin-bottom: 0.3rem;"><i class="fa-solid fa-gear"></i> Cấu hình Google OAuth Client ID (Dành cho Quản trị viên):</label>
-                <div style="display: flex; gap: 0.5rem;">
-                  <input type="text" id="txtGoogleClientId" class="form-control" placeholder="123456...apps.googleusercontent.com" style="font-size: 0.85rem;">
-                  <button id="btnSaveGoogleClientId" class="btn-secondary" style="white-space: nowrap; padding: 0.4rem 0.8rem; font-size: 0.85rem;">
-                    Lưu Client ID
-                  </button>
-                </div>
-              </div>
+              <div id="googleSignInBtnContainer" style="display: flex; justify-content: center; margin-bottom: 0.5rem;"></div>
             </div>
 
             <!-- LICENSE KEY FALLBACK SECTION -->
             <div class="form-group" style="margin-top: 1rem;">
               <label style="font-size: 0.88rem; opacity: 0.8;"><i class="fa-solid fa-key"></i> Hoặc Nhập Mã License Key trực tiếp:</label>
               <div style="display: flex; gap: 0.5rem;">
-                <input type="text" id="txtLicenseKey" class="form-control text-uppercase" placeholder="Ví dụ: QM-VIP-8892" style="font-size: 0.95rem; letter-spacing: 1px;">
+                <input type="text" id="txtLicenseKey" class="form-control text-uppercase" placeholder="Ví dụ: VIP-PRO-2026" style="font-size: 0.95rem; letter-spacing: 1px;">
                 <button id="btnVerifyLicenseKey" class="btn-secondary" style="white-space: nowrap; padding: 0.5rem 1rem;">
                   Kích Hoạt
                 </button>
               </div>
             </div>
-          </div>
-
-          <div class="pricing-info-box">
-            <h4><i class="fa-solid fa-shield-halved"></i> Quy Trình Kích Hoạt Tự Động:</h4>
-            <ul>
-              <li><i class="fa-solid fa-check"></i> Đăng nhập Google -> Email & Tên sẽ tự động ghi vào Google Sheet.</li>
-              <li><i class="fa-solid fa-check"></i> Quản trị viên đánh dấu <strong>"x"</strong> vào cột <strong>Active</strong> trên Google Sheet.</li>
-              <li><i class="fa-solid fa-check"></i> Mở khóa toàn bộ quyền host game không giới hạn số học sinh!</li>
-            </ul>
           </div>
         </div>
       </div>

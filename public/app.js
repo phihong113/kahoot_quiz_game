@@ -1686,7 +1686,7 @@
 
   // ==================== GOOGLE SHEETS & OAUTH LICENSE MANAGEMENT ====================
   let GOOGLE_SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbwYOUR_GOOGLE_APPS_SCRIPT_WEBAPP_ID/exec';
-  let GOOGLE_CLIENT_ID = localStorage.getItem('qm_google_client_id') || '';
+  let GOOGLE_CLIENT_ID = '817345480416-riq2vgigkj27nnqs8uqrofot0oe4t5pp.apps.googleusercontent.com';
 
   const licenseState = {
     isVip: false,
@@ -1725,19 +1725,6 @@
     const container = document.getElementById('googleSignInBtnContainer');
     if (!container) return;
 
-    const clientIdInput = document.getElementById('txtGoogleClientId');
-    if (clientIdInput) clientIdInput.value = GOOGLE_CLIENT_ID;
-
-    if (!GOOGLE_CLIENT_ID || GOOGLE_CLIENT_ID.includes('YOUR_GOOGLE_CLIENT_ID')) {
-      container.innerHTML = `
-        <div style="background: rgba(255, 204, 0, 0.12); border: 1px solid rgba(255, 204, 0, 0.3); padding: 0.75rem 1rem; border-radius: 12px; font-size: 0.84rem; color: #ffeb3b; text-align: left;">
-          <i class="fa-solid fa-triangle-exclamation"></i> <strong>Chưa cấu hình Google OAuth Client ID:</strong><br>
-          Để đăng nhập bằng nút Google thật (đăng nhập đúng mật khẩu/xác thực 2FA), vui lòng dán <strong>Client ID</strong> của thầy/cô vào khung bên dưới và bấm <strong>Lưu Client ID</strong>.
-        </div>
-      `;
-      return;
-    }
-
     if (window.google && window.google.accounts && window.google.accounts.id) {
       container.innerHTML = '';
       window.google.accounts.id.initialize({
@@ -1751,7 +1738,7 @@
         text: 'signin_with'
       });
     } else {
-      setTimeout(renderGoogleSignInButton, 500);
+      setTimeout(renderGoogleSignInButton, 300);
     }
   }
 
