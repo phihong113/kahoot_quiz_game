@@ -1645,7 +1645,7 @@
 
       if (p2) {
         document.getElementById('podium2').style.display = 'flex';
-        document.getElementById('p2Avatar').innerText = p2.avatar;
+      document.getElementById('p2Avatar').innerText = p2.avatar;
         document.getElementById('p2Name').innerText = p2.nickname;
         document.getElementById('p2Score').innerText = `${p2.score} đ`;
       }
@@ -1684,9 +1684,9 @@
     }
   }
 
-  // ==================== GOOGLE SHEETS LICENSE MANAGEMENT ====================
-  // URL Google Apps Script Web App của bạn (dùng chung cho Sheet https://docs.google.com/spreadsheets/d/1ozyUT1aWEBl-RD5L-CE6_TSdbPLwioyUE-DeVBW_m8U)
-  let GOOGLE_SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbyaJgi_twiKpeY_TtvVQ4RX9iTRRXjDD2pPwxVsBTjuJrOg0cUYKZNRPMDBEI2UKzgOOw/exec';
+  // ==================== GOOGLE SHEETS & OAUTH LICENSE MANAGEMENT ====================
+  let GOOGLE_SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbwYOUR_GOOGLE_APPS_SCRIPT_WEBAPP_ID/exec';
+  let GOOGLE_CLIENT_ID = localStorage.getItem('qm_google_client_id') || '';
 
   const licenseState = {
     isVip: false,
@@ -1711,7 +1711,7 @@
     }
   }
 
-  // Handle Google GIS Callback
+  // Handle Official Google OAuth Callback
   window.handleGoogleSignInResponse = async function(response) {
     if (!response || !response.credential) return;
     const payload = parseJwt(response.credential);
@@ -1721,16 +1721,45 @@
     await checkAndVerifyGoogleTeacher(payload.email, payload.name || 'Giáo Viên Google');
   };
 
+  function renderGoogleSignInButton() {
+    const container = document.getElementById('googleSignInBtnContainer');
+    if (!container) return;
+
+    const clientIdInput = document.getElementById('txtGoogleClientId');
+    if (clientIdInput) clientIdInput.value = GOOGLE_CLIENT_ID;
+
+    if (!GOOGLE_CLIENT_ID || GOOGLE_CLIENT_ID.includes('YOUR_GOOGLE_CLIENT_ID')) {
+      container.innerHTML = `
+        <div style="background: rgba(255, 204, 0, 0.12); border: 1px solid rgba(255, 204, 0, 0.3); padding: 0.75rem 1rem; border-radius: 12px; font-size: 0.84rem; color: #ffeb3b; text-align: left;">
+          <i class="fa-solid fa-triangle-exclamation"></i> <strong>Chưa cấu hình Google OAuth Client ID:</strong><br>
+          Để đăng nhập bằng nút Google thật (đăng nhập đúng mật khẩu/xác thực 2FA), vui lòng dán <strong>Client ID</strong> của thầy/cô vào khung bên dưới và bấm <strong>Lưu Client ID</strong>.
+        </div>
+      `;
+      return;
+    }
+
+    if (window.google && window.google.accounts && window.google.accounts.id) {
+      container.innerHTML = '';
+      window.google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: window.handleGoogleSignInResponse
+      });
+      window.google.accounts.id.renderButton(container, {
+        theme: 'filled_blue',
+        size: 'large',
+        shape: 'pill',
+        text: 'signin_with'
+      });
+    } else {
+      setTimeout(renderGoogleSignInButton, 500);
+    }
+  }
+
   async function checkAndVerifyGoogleTeacher(email, name = 'Giáo Viên Google') {
     const cleanEmail = email.trim().toLowerCase();
-    if (!cleanEmail) return alert('Vui lòng nhập email Google!');
-
-    // Show loading hint
-    const btnCheck = document.getElementById('btnVerifyGoogleEmail');
-    if (btnCheck) btnCheck.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang đọc Sheet...';
+    if (!cleanEmail) return alert('Vui lòng cung cấp email Google!');
 
     if (!GOOGLE_SHEET_API_URL || GOOGLE_SHEET_API_URL.includes('YOUR_GOOGLE_APPS_SCRIPT')) {
-      if (btnCheck) btnCheck.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Kiểm tra';
       return alert('Chưa dán URL Google Apps Script Web App trong code!\n\nVui lòng làm theo hướng dẫn trong file GOOGLE_APPS_SCRIPT.gs để tạo Web App URL.');
     }
 
@@ -1738,8 +1767,6 @@
       const url = `${GOOGLE_SHEET_API_URL}?action=google_auth&email=${encodeURIComponent(cleanEmail)}&name=${encodeURIComponent(name)}`;
       const resp = await fetch(url);
       const data = await resp.json();
-
-      if (btnCheck) btnCheck.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Kiểm tra';
 
       if (data && data.success) {
         if (data.active) {
@@ -1764,7 +1791,6 @@
         alert(`Không thể xác thực: ${data.message || 'Lỗi không xác định'}`);
       }
     } catch (err) {
-      if (btnCheck) btnCheck.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Kiểm tra';
       console.error('Lỗi kiểm tra Google Sheet:', err);
       alert('Không thể kết nối tới API Google Sheet. Vui lòng kiểm tra lại kết nối hoặc URL Web App!');
     }
@@ -1789,7 +1815,7 @@
     if (!GOOGLE_SHEET_API_URL || GOOGLE_SHEET_API_URL.includes('YOUR_GOOGLE_APPS_SCRIPT')) {
       return {
         success: false,
-        message: 'Chưa dán URL Google Sheets Web App!\n(Bạn có thể nhập mã dùng thử: VIP-PRO-2026 để test ngay)'
+        message: 'Chưa dán URL Google Sheets Web App!'
       };
     }
 
@@ -1830,6 +1856,7 @@
 
       if (infoBox) infoBox.style.display = 'none';
       if (inputArea) inputArea.style.display = 'block';
+      renderGoogleSignInButton();
     }
   }
 
@@ -1857,15 +1884,16 @@
     updateLicenseUI();
   }
 
-  // Bind Google Email button click event
   function bindGoogleAuthEvents() {
-    const btnVerifyGoogle = document.getElementById('btnVerifyGoogleEmail');
-    if (btnVerifyGoogle) {
-      btnVerifyGoogle.addEventListener('click', () => {
-        const input = document.getElementById('txtGoogleEmail');
-        const email = input ? input.value : '';
-        if (!email) return alert('Vui lòng nhập Email Google!');
-        checkAndVerifyGoogleTeacher(email);
+    const btnSaveClientId = document.getElementById('btnSaveGoogleClientId');
+    if (btnSaveClientId) {
+      btnSaveClientId.addEventListener('click', () => {
+        const val = (document.getElementById('txtGoogleClientId').value || '').trim();
+        if (!val) return alert('Vui lòng nhập Google Client ID!');
+        GOOGLE_CLIENT_ID = val;
+        localStorage.setItem('qm_google_client_id', val);
+        renderGoogleSignInButton();
+        alert('Đã lưu Google Client ID thành công! Nút đăng nhập Google chính thức đã sẵn sàng.');
       });
     }
 
