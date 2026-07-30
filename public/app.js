@@ -1768,11 +1768,11 @@
           localStorage.setItem('qm_teacher_name', licenseState.customerName);
           updateLicenseUI();
 
-          alert(`🎉 XÁC THỰC THÀNH CÔNG!\n\nTài khoản Giáo Viên: ${cleanEmail}\nTrạng thái: Đã đánh dấu 'x' trên Google Sheet.\nBạn có thể sử dụng trọn vẹn ứng dụng QuizMaster LIVE!`);
+          alert('Tài khoản đã được kích hoạt. Chúc thầy cô giảng dạy thành công với công cụ này nhé!');
         } else {
           licenseState.isVip = false;
           updateLicenseUI();
-          alert(`⚠️ THÔNG BÁO TÀI KHOẢN CHƯA KÍCH HOẠT!\n\nEmail của bạn: ${cleanEmail}\nHệ thống đã tự động lưu email này vào Google Sheet.\n\n📌 BƯỚC TIẾP THEO: Vui lòng báo Quản trị viên mở Google Sheet và đánh dấu chữ 'x' vào cột Active để kích hoạt quyền truy cập!`);
+          alert('Tài khoản chưa được kích hoạt, liên hệ admin để kích hoạt!');
         }
       } else {
         alert(`Không thể xác thực: ${data.message || 'Lỗi không xác định'}`);
