@@ -527,30 +527,18 @@
 
           <div id="licenseInputArea" class="license-input-form">
             
-            <!-- GOOGLE SIGN-IN SECTION -->
+            <!-- GOOGLE SHEET & EMAIL AUTH SECTION -->
             <div class="google-auth-box" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.18); border-radius: 16px; padding: 1.25rem; margin-bottom: 1.2rem; text-align: center;">
-              <h4 style="color: #ffcc00; margin-bottom: 0.5rem; font-size: 1rem;"><i class="fa-brands fa-google"></i> Đăng Nhập Tài Khoản Google Giáo Viên</h4>
-              <p style="font-size: 0.85rem; opacity: 0.85; margin-bottom: 1rem;">Hệ thống sẽ tự động cập nhật Email & Tên vào Google Sheet để kiểm tra trạng thái kích hoạt (Cột Active đánh dấu 'X').</p>
+              <h4 style="color: #ffcc00; margin-bottom: 0.5rem; font-size: 1.05rem;"><i class="fa-brands fa-google"></i> Xác Thực Email Google Giáo Viên</h4>
+              <p style="font-size: 0.85rem; opacity: 0.85; margin-bottom: 1rem;">Nhập Email Google của thầy/cô bên dưới. Hệ thống sẽ tự động cập nhật vào Google Sheet để kiểm tra quyền dùng (Cột Active đánh dấu 'X').</p>
               
-              <div id="g_id_onload"
-                   data-client_id="889218320491-sample.apps.googleusercontent.com"
-                   data-callback="handleGoogleSignInResponse"
-                   data-auto_select="false">
+              <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+                <input type="email" id="txtGoogleEmail" class="form-control" placeholder="Ví dụ: conganbinbin@gmail.com" style="font-size: 1rem; text-align: center;">
+                <button id="btnVerifyGoogleEmail" class="btn-primary" style="white-space: nowrap; padding: 0.6rem 1.2rem; font-weight: bold;">
+                  <i class="fa-solid fa-paper-plane"></i> Xác Thực
+                </button>
               </div>
-              <div style="display: flex; justify-content: center; margin-bottom: 0.75rem;">
-                <div class="g_id_signin" data-type="standard" data-shape="pill" data-theme="filled_blue" data-text="signin_with" data-size="large"></div>
-              </div>
-
-              <!-- FALLBACK GOOGLE EMAIL INPUT -->
-              <div style="margin-top: 0.75rem; border-top: 1px dashed rgba(255,255,255,0.2); padding-top: 0.75rem;">
-                <label style="font-size: 0.85rem; opacity: 0.9; display: block; margin-bottom: 0.4rem;">Hoặc nhập nhanh Email Google để xác thực:</label>
-                <div style="display: flex; gap: 0.5rem;">
-                  <input type="email" id="txtGoogleEmail" class="form-control" placeholder="nhap.email.giaovien@gmail.com" style="font-size: 0.95rem;">
-                  <button id="btnVerifyGoogleEmail" class="btn-primary" style="white-space: nowrap; padding: 0.5rem 1rem;">
-                    <i class="fa-solid fa-paper-plane"></i> Kiểm tra
-                  </button>
-                </div>
-              </div>
+              <span style="font-size: 0.78rem; opacity: 0.7; color: #a7f3d0;">💡 Email sẽ tự động ghi vào Sheet nếu chưa có trên hệ thống</span>
             </div>
 
             <!-- LICENSE KEY FALLBACK SECTION -->
