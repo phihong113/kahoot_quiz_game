@@ -12,6 +12,32 @@
     timeout: 2500
   }) : null;
 
+  // STUN & TURN Relay ICE Servers configuration for 4G/5G mobile cross-NAT networks
+  const peerIceServers = [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' },
+    { urls: 'stun:stun2.l.google.com:19302' },
+    { urls: 'stun:stun3.l.google.com:19302' },
+    { urls: 'stun:stun4.l.google.com:19302' },
+    { urls: 'stun:stun.cloudflare.com:3478' },
+    { urls: 'stun:stun.services.mozilla.com' },
+    {
+      urls: 'turn:openrelay.metered.ca:80',
+      username: 'openrelayproject',
+      credential: 'openrelayproject'
+    },
+    {
+      urls: 'turn:openrelay.metered.ca:443',
+      username: 'openrelayproject',
+      credential: 'openrelayproject'
+    },
+    {
+      urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+      username: 'openrelayproject',
+      credential: 'openrelayproject'
+    }
+  ];
+
   // PeerJS WebRTC Engine for Serverless (Vercel) Online Multiplayer
   const peerEngine = {
     peer: null,
@@ -55,7 +81,10 @@
 
       if (typeof Peer !== 'undefined') {
         if (this.peer) this.peer.destroy();
-        this.peer = new Peer(peerId);
+        this.peer = new Peer(peerId, {
+          config: { iceServers: peerIceServers },
+          debug: 1
+        });
 
         this.peer.on('open', () => {
           socket.trigger('room-created', {
@@ -139,10 +168,13 @@
       if (typeof Peer === 'undefined') return alert('Thư viện WebRTC chưa sẵn sàng!');
 
       if (this.peer) this.peer.destroy();
-      this.peer = new Peer();
+      this.peer = new Peer(undefined, {
+        config: { iceServers: peerIceServers },
+        debug: 1
+      });
 
       this.peer.on('open', () => {
-        const conn = this.peer.connect(peerId);
+        const conn = this.peer.connect(peerId, { reliable: true });
         this.hostConn = conn;
 
         conn.on('open', () => {
