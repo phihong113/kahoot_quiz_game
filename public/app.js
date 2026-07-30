@@ -3,11 +3,14 @@
    ========================================================================== */
 
 (function () {
-  // Socket.io initialization
-  const socket = typeof io !== 'undefined' ? io({
+  // Socket.io initialization with Server URL detection
+  const savedSocketUrl = localStorage.getItem('qm_socket_server_url');
+  let socketServerUrl = savedSocketUrl || undefined;
+
+  const socket = typeof io !== 'undefined' ? io(socketServerUrl, {
     transports: ['polling', 'websocket'],
     reconnection: true,
-    reconnectionAttempts: 10,
+    reconnectionAttempts: 15,
     timeout: 10000
   }) : null;
 
@@ -416,11 +419,28 @@
 
   // Host Quiz
   function hostQuiz(quiz) {
-    if (!socket) return alert('Không thể kết nối đến Thư viện Socket.io! Vui lòng tải lại trang.');
+    if (!socket) return alert('Thư viện Socket.io chưa sẵn sàng! Vui lòng tải lại trang.');
+
+    state.currentQuiz = quiz;
+
     if (!socket.connected) {
       socket.connect();
+      
+      const connectHandler = () => {
+        socket.emit('create-room', { quiz, isVip: licenseState.isVip });
+        socket.off('connect', connectHandler);
+      };
+      socket.on('connect', connectHandler);
+
+      setTimeout(() => {
+        if (!socket.connected && window.location.hostname.includes('vercel.app')) {
+          alert('⚠️ LƯU Ý KHI CHẠY TRÊN VERCEL:\n\nVercel là nền tảng Web Serverless tĩnh nên không duy trì kết nối Socket.io 24/7 trực tiếp trên cloud được.\n\n📌 ĐỂ MỞ PHÒNG THI ĐẤU MƯỢT MÀ TRONG LỚP HỌC:\nThầy/cô mở thư mục project trên máy tính, gõ lệnh:\n   npm start\nSau đó truy cập http://localhost:3000 để bấm HOST GAME và cho học sinh quét mã QR tham gia thi đấu!');
+        }
+      }, 3500);
+
+      return;
     }
-    state.currentQuiz = quiz;
+
     socket.emit('create-room', { quiz, isVip: licenseState.isVip });
   }
 
