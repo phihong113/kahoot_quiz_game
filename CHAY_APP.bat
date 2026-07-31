@@ -10,7 +10,7 @@ echo.
 node -v >nul 2>&1
 if %errorlevel% neq 0 (
     echo [LOI] May tinh chua cai dat Node.js!
-    echo Vui long tai va cai Node.js (mien phi) tai: https://nodejs.org
+    echo Vui long tai Node.js mien phi tai trang web https://nodejs.org
     echo.
     pause
     exit /b
@@ -23,13 +23,13 @@ if not exist node_modules (
 )
 
 echo.
-echo [2/2] Dang mo Server & Trinh duyet...
+echo [2/2] Dang mo Server va Trinh duyet...
 start http://localhost:3000
 
 echo.
 echo ====================================================
-echo  🚀 GAME SERVER DANG CHAY!
-echo  👉 Vui long KHONG DONG cua so nay trong qua trinh thi dau.
+echo   GAME SERVER DANG CHAY CHUAN XAC!
+echo   Vui long KHONG DONG cua so nay trong qua trinh thi dau.
 echo ====================================================
 echo.
 
