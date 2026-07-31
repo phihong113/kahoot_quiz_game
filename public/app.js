@@ -669,6 +669,22 @@
     studentResult: document.getElementById('screenStudentResult')
   };
 
+  function renderMath(el) {
+    if (window.renderMathInElement) {
+      try {
+        window.renderMathInElement(el || document.body, {
+          delimiters: [
+            { left: '$$', right: '$$', display: true },
+            { left: '$', right: '$', display: false },
+            { left: '\\(', right: '\\)', display: false },
+            { left: '\\[', right: '\\]', display: true }
+          ],
+          throwOnError: false
+        });
+      } catch (e) {}
+    }
+  }
+
   function showScreen(screenKey) {
     Object.keys(screens).forEach((key) => {
       if (screens[key]) {
@@ -677,6 +693,7 @@
     });
     if (screens[screenKey]) {
       screens[screenKey].classList.add('active');
+      setTimeout(() => renderMath(screens[screenKey]), 50);
     }
 
     // Footer Visibility: Only display on Home or Teacher screens, hide on Student screens
