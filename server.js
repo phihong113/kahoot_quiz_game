@@ -35,16 +35,37 @@ function generatePin() {
   return pin;
 }
 
+// Global public tunnel URL store
+let publicTunnelUrl = null;
+
+async function setupPublicTunnel(port) {
+  try {
+    const localtunnel = require('localtunnel');
+    const tunnel = await localtunnel({ port });
+    publicTunnelUrl = tunnel.url;
+    console.log(`🌐 Public Tunnel Online URL (4G/5G): ${publicTunnelUrl}`);
+
+    tunnel.on('close', () => {
+      console.log('⚡ Public tunnel connection closed, reconnecting...');
+      publicTunnelUrl = null;
+      setTimeout(() => setupPublicTunnel(port), 3000);
+    });
+  } catch (err) {
+    console.warn('⚠️ Could not start localtunnel automatically:', err.message);
+  }
+}
+
 io.on('connection', (socket) => {
   console.log(`🔌 Client connected: ${socket.id}`);
 
   // TEACHER / HOST EVENTS
-  socket.on('create-room', ({ quiz }) => {
+  socket.on('create-room', ({ quiz, isVip }) => {
     const pin = generatePin();
     rooms[pin] = {
       pin,
       hostSocketId: socket.id,
       quiz: quiz || { title: 'Trắc nghiệm Kahoot', questions: [] },
+      isVip: !!isVip,
       currentQuestionIndex: -1,
       state: 'LOBBY',
       players: {},
@@ -54,13 +75,17 @@ io.on('connection', (socket) => {
     };
 
     socket.join(pin);
+    const localIp = getLocalIP();
+    const publicUrl = publicTunnelUrl || `http://${localIp}:${PORT}`;
+
     socket.emit('room-created', {
       pin,
       quiz: rooms[pin].quiz,
-      localIp: getLocalIP(),
-      port: PORT
+      localIp,
+      port: PORT,
+      publicUrl
     });
-    console.log(`🏠 Room created with PIN: ${pin}`);
+    console.log(`🏠 Room created with PIN: ${pin} | Public URL: ${publicUrl}`);
   });
 
   socket.on('kick-player', ({ pin, socketId }) => {
@@ -321,6 +346,9 @@ server.listen(PORT, () => {
   console.log(`💻 Trình duyệt máy tính: http://localhost:${PORT}`);
   console.log(`📱 Mạng Wi-Fi / Điện thoại: http://${localIp}:${PORT}`);
   console.log(`====================================================`);
+  
+  // Auto start public tunnel for 4G/5G mobile connectivity
+  setupPublicTunnel(PORT);
 });
 
 module.exports = app;

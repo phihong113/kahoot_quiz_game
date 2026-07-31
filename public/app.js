@@ -1852,12 +1852,12 @@
     if (!socket) return;
 
     // Room Created (Teacher)
-    socket.on('room-created', ({ pin, quiz, localIp, port }) => {
+    socket.on('room-created', ({ pin, quiz, localIp, port, publicUrl }) => {
       state.currentPin = pin;
       showScreen('teacherLobby');
       document.getElementById('lobbyPinDisplay').innerText = pin;
 
-      const hostUrl = `http://${localIp}:${port}`;
+      const hostUrl = publicUrl || `http://${localIp}:${port}`;
       document.getElementById('lobbyHostUrl').innerText = hostUrl;
 
       // Render QR code
