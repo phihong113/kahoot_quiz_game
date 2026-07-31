@@ -41,7 +41,7 @@ let publicTunnelUrl = null;
 async function setupPublicTunnel(port) {
   try {
     const localtunnel = require('localtunnel');
-    const tunnel = await localtunnel({ port });
+    const tunnel = await localtunnel({ port, local_host: '127.0.0.1' });
     publicTunnelUrl = tunnel.url;
     console.log(`🌐 Public Tunnel Online URL (4G/5G): ${publicTunnelUrl}`);
 
@@ -339,7 +339,7 @@ function getLeaderboard(room) {
 }
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
   const localIp = getLocalIP();
   console.log(`====================================================`);
   console.log(`🚀 QuizMaster Game Server đang chạy tại:`);
