@@ -38,21 +38,54 @@ function generatePin() {
 // Global public tunnel URL store
 let publicTunnelUrl = null;
 
-async function setupPublicTunnel(port) {
+function setupPublicTunnel(port) {
+  const { spawn } = require('child_process');
+  
+  try {
+    const sshProcess = spawn('ssh', [
+      '-o', 'StrictHostKeyChecking=no',
+      '-o', 'ServerAliveInterval=30',
+      '-R', `80:127.0.0.1:${port}`,
+      'nokey@localhost.run'
+    ]);
+
+    const handleOutput = (data) => {
+      const text = data.toString();
+      const match = text.match(/https:\/\/[a-zA-Z0-9-]+\.lhr\.life/);
+      if (match) {
+        publicTunnelUrl = match[0];
+        console.log(`🌐 Public Tunnel Online URL (4G/5G Clean): ${publicTunnelUrl}`);
+      }
+    };
+
+    sshProcess.stdout.on('data', handleOutput);
+    sshProcess.stderr.on('data', handleOutput);
+
+    sshProcess.on('close', () => {
+      publicTunnelUrl = null;
+      setTimeout(() => setupPublicTunnel(port), 5000);
+    });
+
+    sshProcess.on('error', () => {
+      setupLocaltunnelFallback(port);
+    });
+  } catch (err) {
+    setupLocaltunnelFallback(port);
+  }
+}
+
+async function setupLocaltunnelFallback(port) {
   try {
     const localtunnel = require('localtunnel');
     const tunnel = await localtunnel({ port, local_host: '127.0.0.1' });
     publicTunnelUrl = tunnel.url;
-    console.log(`🌐 Public Tunnel Online URL (4G/5G): ${publicTunnelUrl}`);
+    console.log(`🌐 Public Tunnel Online URL (Fallback): ${publicTunnelUrl}`);
 
     tunnel.on('close', () => {
-      console.log('⚡ Public tunnel connection closed, reconnecting...');
       publicTunnelUrl = null;
-      setTimeout(() => setupPublicTunnel(port), 3000);
+      setTimeout(() => setupPublicTunnel(port), 5000);
     });
-  } catch (err) {
-    console.warn('⚠️ Could not start localtunnel automatically:', err.message);
-  }
+  } catch (e) {}
 }
 
 io.on('connection', (socket) => {
