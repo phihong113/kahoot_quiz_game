@@ -10,7 +10,13 @@ echo.
 node -v >nul 2>&1
 if %errorlevel% neq 0 (
     echo [LOI] May tinh chua cai dat Node.js!
-    echo Vui long tai Node.js mien phi tai trang web https://nodejs.org
+    if exist CAI_DAT_NODEJS.msi (
+        echo Dang mo file cai dat CAI_DAT_NODEJS.msi...
+        echo Vui long bam Next - Next - Install tren man hinh hien ra!
+        start CAI_DAT_NODEJS.msi
+    ) else (
+        echo Vui long tai Node.js mien phi tai trang web https://nodejs.org
+    )
     echo.
     pause
     exit /b
