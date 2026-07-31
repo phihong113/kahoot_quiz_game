@@ -242,6 +242,8 @@ button:active {
 }
 
 .hero-title span {
+  display: block;
+  margin-top: 0.25rem;
   color: #ffcc00;
   background: -webkit-linear-gradient(45deg, #ffcc00, #ff3366);
   -webkit-background-clip: text;
