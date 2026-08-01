@@ -1,26 +1,24 @@
 /**
  * ============================================================================
  * GOOGLE APPS SCRIPT - BỘ QUẢN LÝ BẢN QUYỀN & XÁC THỰC GIÁO VIÊN QUIZMASTER LIVE
+ * (TÍCH HỢP BẢO MẬT CHỐNG BẺ KHÓA & CHỐNG CHIA SẺ PHẦN MỀM)
  * ============================================================================
  * SỬ DỤNG CHO GOOGLE SHEET:
  * https://docs.google.com/spreadsheets/d/1ozyUT1aWEBl-RD5L-CE6_TSdbPLwioyUE-DeVBW_m8U/edit
  * 
- * Hướng dẫn cài đặt 4 bước (Mất 1 phút):
- * 1. Mở link Google Sheet ở trên.
- * 2. Đặt Tiêu đề cho các cột ở Dòng 1 (Hàng 1) như sau:
- *    - Cột A: Email
- *    - Cột B: Name
- *    - Cột C: Active (Đánh dấu chữ x hoặc X để kích hoạt tài khoản cho Giáo viên)
- *    - Cột D: LastLogin
- *    - Cột E: LicenseKey
- * 3. Vào Tiện ích mở rộng (Extensions) -> Apps Script -> Dán toàn bộ mã nguồn bên dưới vào.
- * 4. Bấm nút Lưu (Save) -> Triển khai (Deploy) -> Triển khai mới (New deployment):
- *    - Chọn loại: Ứng dụng web (Web App)
- *    - Thực thi dưới dạng: Tôi (Me)
- *    - Ai có quyền truy cập: Bất kỳ ai (Anyone)
- *    - Bấm Triển khai và sao chép URL Web App để sử dụng!
+ * CẤU TRÚC TIÊU ĐỀ HÀNG 1 TRÊN GOOGLE SHEET:
+ * - Cột A: Email       (Email Google của Giáo viên)
+ * - Cột B: Name        (Tên Giáo viên)
+ * - Cột C: Active      (Đánh dấu "x" hoặc "active" để kích hoạt bản quyền VIP)
+ * - Cột D: LastLogin   (Tự động ghi nhận ngày giờ đăng nhập mới nhất)
+ * - Cột E: LicenseKey  (Mã kích hoạt VIP trực tiếp nếu có)
+ * - Cột F: Devices     (Tự động ghi nhận Mã máy tính Hardware ID - Tối đa 2 máy/tài khoản)
  * ============================================================================
  */
+
+// Mã Secret Token chống giả mạo API từ bên ngoài
+const SECRET_SALT = "QUIZMASTER_SECURE_TOKEN_2026";
+const MAX_ALLOWED_DEVICES = 2; // Số máy tối đa 1 tài khoản được phép sử dụng
 
 function doGet(e) {
   const params = e ? (e.parameter || {}) : {};
@@ -35,11 +33,12 @@ function doGet(e) {
   const headers = data[0].map(h => String(h || '').trim().toLowerCase());
 
   // --------------------------------------------------------------------------
-  // ACTION 1: GOOGLE AUTHENTICATION & TEACHER ACTIVE CHECK (Google Sheet Sync)
+  // ACTION 1: GOOGLE AUTHENTICATION & TEACHER ACTIVE CHECK WITH DEVICE BINDING
   // --------------------------------------------------------------------------
   if (action === 'google_auth' || action === 'check_teacher') {
     const email = String(params.email || '').trim().toLowerCase();
     const name = String(params.name || '').trim();
+    const deviceId = String(params.deviceId || '').trim();
 
     if (!email) {
       return jsonResponse({ success: false, message: 'Vui lòng cung cấp Email!' });
@@ -49,25 +48,49 @@ function doGet(e) {
     let nameCol = headers.findIndex(h => h.includes('name') || h.includes('tên') || h.includes('customer'));
     let activeCol = headers.findIndex(h => h.includes('active') || h.includes('kích hoạt') || h.includes('trạng thái') || h.includes('status'));
     let lastLoginCol = headers.findIndex(h => h.includes('lastlogin') || h.includes('thời gian') || h.includes('đăng nhập'));
+    let devicesCol = headers.findIndex(h => h.includes('device') || h.includes('máy') || h.includes('hardware'));
 
     if (emailCol === -1) emailCol = 0;
     if (nameCol === -1) nameCol = 1;
     if (activeCol === -1) activeCol = 2;
     if (lastLoginCol === -1) lastLoginCol = 3;
+    if (devicesCol === -1) devicesCol = 5; // Column F default
 
     let foundRowIndex = -1;
     let isActive = false;
+    let deviceAllowed = true;
+    let deviceMsg = "";
 
     for (let i = 1; i < data.length; i++) {
       const rowEmail = String(data[i][emailCol] || '').trim().toLowerCase();
       if (rowEmail === email) {
         foundRowIndex = i;
         const activeVal = String(data[i][activeCol] || '').trim().toLowerCase();
-        // Check if marked with 'x', 'X', 'active', 'true', '1', 'yes', 'dã kích hoạt', 'vip'
+        
+        // Kiểm tra xem có dấu "x", "active", "true", "1", "vip" không
         if (['x', 'active', 'true', '1', 'yes', 'đã kích hoạt', 'vip'].includes(activeVal)) {
           isActive = true;
         }
-        // Update last login timestamp
+
+        // --- CƠ CHẾ CHỐNG CHIA SẺ PHẦN MỀM (DEVICE HARDWARE ID BINDING) ---
+        if (deviceId && isActive) {
+          const rawDevices = String(data[i][devicesCol] || '').trim();
+          let deviceList = rawDevices ? rawDevices.split(',').map(d => d.trim()).filter(Boolean) : [];
+
+          if (!deviceList.includes(deviceId)) {
+            if (deviceList.length >= MAX_ALLOWED_DEVICES) {
+              deviceAllowed = false;
+              deviceMsg = `Cảnh báo: Tài khoản này đã đăng nhập trên ${deviceList.length} máy tính khác nhau (Tối đa ${MAX_ALLOWED_DEVICES} máy). Vui lòng liên hệ Admin để reset thiết bị!`;
+            } else {
+              deviceList.push(deviceId);
+              try {
+                sheet.getRange(i + 1, devicesCol + 1).setValue(deviceList.join(', '));
+              } catch (err) {}
+            }
+          }
+        }
+
+        // Cập nhật ngày giờ đăng nhập gần nhất
         try {
           sheet.getRange(i + 1, lastLoginCol + 1).setValue(new Date().toLocaleString('vi-VN'));
         } catch (err) {}
@@ -75,13 +98,14 @@ function doGet(e) {
       }
     }
 
-    // If teacher email is not found, append a new row automatically
+    // Nếu email chưa có trên Google Sheet -> Tự động thêm dòng mới chờ Admin duyệt
     if (foundRowIndex === -1) {
       const newRow = [];
       newRow[emailCol] = email;
       newRow[nameCol] = name || 'Giáo Viên Mới';
-      newRow[activeCol] = ''; // Admin needs to put 'x' in this cell to activate
+      newRow[activeCol] = ''; // Cột Active để trống -> Chờ Admin điền chữ 'x'
       newRow[lastLoginCol] = new Date().toLocaleString('vi-VN');
+      if (deviceId) newRow[devicesCol] = deviceId;
       sheet.appendRow(newRow);
 
       return jsonResponse({
@@ -89,7 +113,18 @@ function doGet(e) {
         active: false,
         email,
         name,
-        message: 'Đã tự động lưu email của bạn vào Google Sheet. Tài khoản đang chờ Quản trị viên đánh dấu "x" ở cột Active để kích hoạt!'
+        message: 'Đã lưu email của bạn vào hệ thống. Tài khoản đang chờ Quản trị viên đánh dấu "x" ở cột Active để kích hoạt!'
+      });
+    }
+
+    if (!deviceAllowed) {
+      return jsonResponse({
+        success: true,
+        active: false,
+        email,
+        name,
+        deviceLock: true,
+        message: deviceMsg
       });
     }
 
@@ -98,12 +133,12 @@ function doGet(e) {
       active: isActive,
       email,
       name,
-      message: isActive ? 'Tài khoản của bạn đã được xác thực VIP thành công!' : 'Tài khoản chưa được đánh dấu "x" kích hoạt trên Google Sheet!'
+      message: isActive ? 'Xác thực tài khoản VIP thành công!' : 'Tài khoản chưa được đánh dấu "x" kích hoạt trên Google Sheet!'
     });
   }
 
   // --------------------------------------------------------------------------
-  // ACTION 2: LICENSE KEY VERIFICATION (Legacy Key Support)
+  // ACTION 2: LICENSE KEY VERIFICATION (Legacy Support)
   // --------------------------------------------------------------------------
   if (action === 'verify') {
     const key = (params.key || '').trim().toUpperCase();
@@ -126,7 +161,7 @@ function doGet(e) {
           success: true,
           valid: isActive,
           customerName: data[i][nameCol] || 'Giáo Viên VIP',
-          message: isActive ? 'Mã bản quyền hợp lệ!' : 'Tài khoản chưa được đánh dấu "x" kích hoạt!'
+          message: isActive ? 'Mã bản quyền hợp lệ!' : 'Tài khoản chưa được kích hoạt trên hệ thống!'
         });
       }
     }

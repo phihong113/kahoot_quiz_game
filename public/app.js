@@ -2203,6 +2203,15 @@
     }
   }
 
+  function getDeviceId() {
+    let devId = localStorage.getItem('qm_device_id');
+    if (!devId) {
+      devId = 'DEV-' + Math.random().toString(36).substring(2, 10).toUpperCase() + '-' + Date.now().toString(36).toUpperCase();
+      localStorage.setItem('qm_device_id', devId);
+    }
+    return devId;
+  }
+
   async function checkAndVerifyGoogleTeacher(email, name = 'Giáo Viên Google') {
     const cleanEmail = email.trim().toLowerCase();
     if (!cleanEmail) return alert('Vui lòng cung cấp email Google!');
@@ -2212,7 +2221,8 @@
     }
 
     try {
-      const url = `${GOOGLE_SHEET_API_URL}?action=google_auth&email=${encodeURIComponent(cleanEmail)}&name=${encodeURIComponent(name)}`;
+      const devId = getDeviceId();
+      const url = `${GOOGLE_SHEET_API_URL}?action=google_auth&email=${encodeURIComponent(cleanEmail)}&name=${encodeURIComponent(name)}&deviceId=${encodeURIComponent(devId)}`;
       const resp = await fetch(url);
       const data = await resp.json();
 
