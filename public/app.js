@@ -2005,16 +2005,20 @@
         const labels = ['A', 'B', 'C', 'D'];
         document.getElementById('correctAnswerLabel').innerText = `${labels[correctIndex]}`;
 
-        // Handle Explanation Box Display - Guaranteed 100% Display
+        // Handle Explanation Box Display (Respect Settings Toggle)
         const expBox = document.getElementById('explanationBox');
         const expText = document.getElementById('explanationText');
         if (expBox && expText) {
-          if (explanation && explanation.trim().length > 0) {
-            expText.innerText = explanation;
+          if (state.settings.showExplanation) {
+            if (explanation && explanation.trim().length > 0) {
+              expText.innerText = explanation;
+            } else {
+              expText.innerText = `Đáp án chính xác là phương án ${labels[correctIndex]}. Hãy chú ý phân tích kỹ câu hỏi này để đạt điểm cao hơn nhé!`;
+            }
+            expBox.style.display = 'block';
           } else {
-            expText.innerText = `Đáp án chính xác là phương án ${labels[correctIndex]}. Hãy chú ý phân tích kỹ câu hỏi này để đạt điểm cao hơn nhé!`;
+            expBox.style.display = 'none';
           }
-          expBox.style.display = 'block';
         }
 
         const maxCount = Math.max(...stats, 1);
@@ -2352,6 +2356,104 @@
     }
   }
 
+  // ==================== SETTINGS & I18N SYSTEM ====================
+  state.settings = {
+    language: localStorage.getItem('qm_lang') || 'vi',
+    showExplanation: localStorage.getItem('qm_show_exp') !== 'false'
+  };
+
+  const i18nDict = {
+    vi: {
+      settingsBtn: 'Cài Đặt',
+      roleSwitchBtn: 'Đổi Vai Trò',
+      settingsTitle: 'Cài Đặt Hệ Thống',
+      settingsSubtitle: 'Tùy chỉnh ngôn ngữ, chế độ hiển thị và thông tin ứng dụng',
+      langSettingTitle: '<i class="fa-solid fa-globe"></i> Ngôn Ngữ / Language',
+      langSettingDesc: 'Chọn ngôn ngữ hiển thị giao diện',
+      expSettingTitle: '<i class="fa-solid fa-lightbulb"></i> Hiển Thị Lời Giải Thích',
+      expSettingDesc: 'Tắt nếu không muốn hiện phần giải thích sau khi công bố đáp án',
+      aboutTitle: '<i class="fa-solid fa-circle-info"></i> Giới Thiệu & Liên Hệ Hỗ Trợ',
+      phoneLabel: 'Hotline / Zalo:',
+      fanpageLink: 'Ghé thăm Fanpage AI Thực Chiến',
+      donateDesc: 'Nếu thấy những chia sẻ này hữu ích, bạn có thể ủng hộ dự án qua VPBank: <strong>290542325</strong>.',
+      qrCaption: 'QR "AI thực chiến"'
+    },
+    en: {
+      settingsBtn: 'Settings',
+      roleSwitchBtn: 'Switch Role',
+      settingsTitle: 'System Settings',
+      settingsSubtitle: 'Customize language, display modes, and app details',
+      langSettingTitle: '<i class="fa-solid fa-globe"></i> Language / Ngôn Ngữ',
+      langSettingDesc: 'Select UI display language',
+      expSettingTitle: '<i class="fa-solid fa-lightbulb"></i> Show Question Explanations',
+      expSettingDesc: 'Turn off to hide explanation after revealing correct answer',
+      aboutTitle: '<i class="fa-solid fa-circle-info"></i> About & Support Contact',
+      phoneLabel: 'Hotline / Zalo:',
+      fanpageLink: 'Visit AI Practical Fanpage',
+      donateDesc: 'If you find this useful, feel free to support via VPBank: <strong>290542325</strong>.',
+      qrCaption: 'QR "AI Practical"'
+    }
+  };
+
+  function applyI18n(lang) {
+    state.settings.language = lang;
+    const dict = i18nDict[lang] || i18nDict.vi;
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const key = el.getAttribute('data-i18n');
+      if (dict[key]) {
+        el.innerHTML = dict[key];
+      }
+    });
+  }
+
+  function initSettingsSystem() {
+    const modalSettings = document.getElementById('modalSettings');
+    const btnToggle = document.getElementById('btnSettingsToggle');
+    const btnClose = document.getElementById('btnCloseSettingsModal');
+    const selLang = document.getElementById('settingLanguage');
+    const chkExp = document.getElementById('settingShowExplanation');
+
+    if (selLang) {
+      selLang.value = state.settings.language;
+      selLang.addEventListener('change', (e) => {
+        const newLang = e.target.value;
+        localStorage.setItem('qm_lang', newLang);
+        applyI18n(newLang);
+      });
+    }
+
+    if (chkExp) {
+      chkExp.checked = state.settings.showExplanation;
+      chkExp.addEventListener('change', (e) => {
+        state.settings.showExplanation = e.target.checked;
+        localStorage.setItem('qm_show_exp', e.target.checked);
+      });
+    }
+
+    if (btnToggle && modalSettings) {
+      btnToggle.addEventListener('click', () => {
+        modalSettings.style.display = 'flex';
+      });
+    }
+
+    if (btnClose && modalSettings) {
+      btnClose.addEventListener('click', () => {
+        modalSettings.style.display = 'none';
+      });
+    }
+
+    if (modalSettings) {
+      modalSettings.addEventListener('click', (e) => {
+        if (e.target === modalSettings) {
+          modalSettings.style.display = 'none';
+        }
+      });
+    }
+
+    // Apply saved language on load
+    applyI18n(state.settings.language);
+  }
+
   // App Initialization
   document.addEventListener('DOMContentLoaded', () => {
     loadQuizzes();
@@ -2360,5 +2462,6 @@
     bindSocketEvents();
     checkUrlPin();
     initLicenseSystem();
+    initSettingsSystem();
   });
 })();

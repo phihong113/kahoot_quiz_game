@@ -60,8 +60,11 @@
         <button id="btnSoundToggle" class="btn-icon" title="Bật/Tắt âm thanh">
           <i class="fa-solid fa-volume-high"></i>
         </button>
+        <button id="btnSettingsToggle" class="btn-secondary" title="Cài đặt">
+          <i class="fa-solid fa-gear"></i> <span data-i18n="settingsBtn">Cài Đặt</span>
+        </button>
         <button id="btnRoleSwitch" class="btn-secondary">
-          <i class="fa-solid fa-arrows-rotate"></i> Đổi Vai Trò
+          <i class="fa-solid fa-arrows-rotate"></i> <span data-i18n="roleSwitchBtn">Đổi Vai Trò</span>
         </button>
       </div>
     </header>
@@ -479,40 +482,86 @@
 
     <!-- ==================== FOOTER ==================== -->
     <footer class="app-footer">
-      <div class="footer-card">
-        <div class="footer-left">
-          <h3 class="footer-title">Liên hệ & Hỗ trợ</h3>
-          <div class="footer-info-row">
-            <span class="footer-label">Số điện thoại:</span>
-            <a href="tel:0916941504" class="footer-link phone-link">091.694.1504</a>
-          </div>
-          <div class="footer-info-row">
-            <span class="footer-label">Email:</span>
-            <a href="mailto:huyhoang194@gmail.com" class="footer-link email-link">huyhoang194@gmail.com</a>
-          </div>
-          <div class="footer-info-row">
-            <span class="footer-label">Fanpage:</span>
-            <a href="https://www.facebook.com/AIFTG" target="_blank" rel="noopener noreferrer" class="btn-fanpage-link">
-              <i class="fa-brands fa-facebook"></i> Ghé thăm Fanpage
-            </a>
-          </div>
-
-          <div class="footer-donate-box">
-            <i class="fa-solid fa-heart donate-heart"></i>
-            <span>Nếu thấy những chia sẻ này hữu ích, bạn có thể ủng hộ dự án qua VPBank: <strong>290542325</strong>.</span>
-          </div>
-        </div>
-
-        <div class="footer-right">
-          <div class="footer-qr-card">
-            <div class="qr-placeholder">
-              <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=https://www.facebook.com/AIFTG" alt="QR Code AI thực chiến" class="qr-img" />
-            </div>
-            <div class="qr-caption">QR "AI thực chiến"</div>
-          </div>
+      <div class="footer-card" style="justify-content: center; text-align: center; padding: 1rem 1.5rem; max-width: 800px; margin: 1.5rem auto 0 auto;">
+        <div style="font-size: 0.88rem; opacity: 0.85;">
+          © 2026 <strong>QuizMaster LIVE</strong> • Nền tảng trắc nghiệm trực tuyến dành cho Giáo viên & Học sinh
         </div>
       </div>
     </footer>
+
+    <!-- ==================== SETTINGS MODAL ==================== -->
+    <div id="modalSettings" class="modal-overlay" style="display: none;">
+      <div class="modal-card settings-modal-card" style="max-width: 620px;">
+        <button id="btnCloseSettingsModal" class="modal-close-btn">&times;</button>
+        
+        <div class="modal-header" style="margin-bottom: 1.25rem;">
+          <div class="modal-icon" style="background: rgba(255, 204, 0, 0.15); color: #ffcc00;"><i class="fa-solid fa-gear"></i></div>
+          <h2><span data-i18n="settingsTitle">Cài Đặt Hệ Thống</span> <span>QuizMaster</span></h2>
+          <p data-i18n="settingsSubtitle">Tùy chỉnh ngôn ngữ, chế độ hiển thị và thông tin ứng dụng</p>
+        </div>
+
+        <div class="modal-body" style="display: flex; flex-direction: column; gap: 1.2rem;">
+          <!-- 1. Language Setting -->
+          <div class="settings-section" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 16px; padding: 1.2rem;">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
+              <div>
+                <h4 style="color: #ffcc00; font-size: 1.05rem; margin-bottom: 0.25rem;" data-i18n="langSettingTitle"><i class="fa-solid fa-globe"></i> Ngôn Ngữ / Language</h4>
+                <p style="font-size: 0.85rem; opacity: 0.8; margin: 0;" data-i18n="langSettingDesc">Chọn ngôn ngữ hiển thị giao diện</p>
+              </div>
+              <select id="settingLanguage" class="form-control" style="width: auto; min-width: 140px; padding: 0.45rem 0.85rem; font-weight: 600; cursor: pointer;">
+                <option value="vi">🇻🇳 Tiếng Việt</option>
+                <option value="en">🇬🇧 English</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- 2. Explanation Toggle Setting -->
+          <div class="settings-section" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 16px; padding: 1.2rem;">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
+              <div>
+                <h4 style="color: #ffcc00; font-size: 1.05rem; margin-bottom: 0.25rem;" data-i18n="expSettingTitle"><i class="fa-solid fa-lightbulb"></i> Hiển Thị Lời Giải Thích</h4>
+                <p style="font-size: 0.85rem; opacity: 0.8; margin: 0;" data-i18n="expSettingDesc">Tắt nếu không muốn hiện phần giải thích sau khi công bố đáp án</p>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="settingShowExplanation" checked>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <!-- 3. About / App Info Section -->
+          <div class="settings-section" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 16px; padding: 1.2rem;">
+            <h4 style="color: #ffcc00; font-size: 1.05rem; margin-bottom: 0.85rem;" data-i18n="aboutTitle"><i class="fa-solid fa-circle-info"></i> Giới Thiệu & Liên Hệ Hỗ Trợ</h4>
+            
+            <div class="about-content" style="display: flex; flex-direction: column; gap: 0.75rem; font-size: 0.9rem;">
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fa-solid fa-phone" style="color: #ffcc00; width: 20px;"></i>
+                <span><strong data-i18n="phoneLabel">Hotline / Zalo:</strong> <a href="tel:0916941504" style="color: #4da6ff; font-weight: 600;">091.694.1504</a></span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fa-solid fa-envelope" style="color: #ffcc00; width: 20px;"></i>
+                <span><strong>Email:</strong> <a href="mailto:huyhoang194@gmail.com" style="color: #4da6ff; font-weight: 600;">huyhoang194@gmail.com</a></span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fa-brands fa-facebook" style="color: #ffcc00; width: 20px;"></i>
+                <span><strong>Fanpage:</strong> <a href="https://www.facebook.com/AIFTG" target="_blank" rel="noopener noreferrer" style="color: #4da6ff; font-weight: 600;" data-i18n="fanpageLink">Ghé thăm Fanpage AI Thực Chiến</a></span>
+              </div>
+
+              <div style="background: rgba(255,204,0,0.1); border-left: 3px solid #ffcc00; padding: 0.75rem 1rem; border-radius: 8px; margin-top: 0.25rem;">
+                <i class="fa-solid fa-heart" style="color: #ff4757; margin-right: 0.35rem;"></i>
+                <span data-i18n="donateDesc">Nếu thấy những chia sẻ này hữu ích, bạn có thể ủng hộ dự án qua VPBank: <strong>290542325</strong>.</span>
+              </div>
+
+              <div style="text-align: center; margin-top: 0.5rem;">
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=https://www.facebook.com/AIFTG" alt="QR Code AI thực chiến" style="width: 110px; height: 110px; border-radius: 12px; border: 2px solid rgba(255,255,255,0.2); margin-bottom: 0.35rem;" />
+                <div style="font-size: 0.8rem; opacity: 0.75;" data-i18n="qrCaption">QR "AI thực chiến"</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
 
     <!-- ==================== VIP LICENSE MODAL ==================== -->
     <div id="modalLicense" class="modal-overlay" style="display: none;">
