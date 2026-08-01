@@ -786,20 +786,24 @@
     if (!grid) return;
     grid.innerHTML = '';
 
+    const lang = (state.settings && state.settings.language) ? state.settings.language : 'vi';
+    const dict = i18nDict[lang] || i18nDict.vi;
+
     state.quizzes.forEach((quiz, index) => {
       const card = document.createElement('div');
       card.className = 'quiz-card';
+      const qCount = quiz.questions ? quiz.questions.length : 0;
       card.innerHTML = `
         <div>
           <div class="quiz-card-title">${escapeHtml(quiz.title)}</div>
-          <div class="quiz-card-info"><i class="fa-solid fa-circle-question"></i> ${quiz.questions ? quiz.questions.length : 0} câu hỏi</div>
+          <div class="quiz-card-info"><i class="fa-solid fa-circle-question"></i> ${qCount} ${dict.questionsCountText || 'câu hỏi'}</div>
         </div>
         <div class="quiz-card-actions" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
           <button class="btn-success btn-host-quiz" data-index="${index}" style="flex: 2;">
-            <i class="fa-solid fa-play"></i> HOST GAME
+            <i class="fa-solid fa-play"></i> ${dict.btnHost || 'HOST GAME'}
           </button>
           <button class="btn-secondary btn-edit-quiz" data-index="${index}" title="Chỉnh sửa câu hỏi" style="flex: 1; padding: 0.4rem 0.6rem;">
-            <i class="fa-solid fa-pen-to-square"></i> Sửa
+            <i class="fa-solid fa-pen-to-square"></i> ${dict.btnEdit || 'Sửa'}
           </button>
           <button class="btn-secondary btn-delete-quiz" data-index="${index}" style="padding: 0.4rem 0.6rem;">
             <i class="fa-solid fa-trash"></i>
@@ -2376,7 +2380,26 @@
       phoneLabel: 'Hotline / Zalo:',
       fanpageLink: 'Ghé thăm Fanpage AI Thực Chiến',
       donateDesc: 'Nếu thấy những chia sẻ này hữu ích, bạn có thể ủng hộ dự án qua VPBank: <strong>290542325</strong>.',
-      qrCaption: 'QR "AI thực chiến"'
+      qrCaption: 'QR "AI thực chiến"',
+      heroTitle: 'Lớp Học Thông Minh <br><span>Trắc Nghiệm Tương Tác Trực Tiếp</span>',
+      heroDesc: 'Công cụ hỗ trợ giáo viên khởi động và ôn tập bài học sinh động phong cách Kahoot. Tải đề từ Excel chỉ 5 giây!',
+      teacherBadge: 'Dành cho Giáo viên',
+      teacherCardTitle: 'Tạo & Host Trò Chơi',
+      teacherCardDesc: 'Import bộ câu hỏi từ File Excel, CSV, JSON hoặc dán Văn bản. Làm chủ phòng học trực tuyến.',
+      btnManageHost: '<i class="fa-solid fa-plus-circle"></i> Quản Lý & Host Bài Trắc Nghiệm',
+      studentBadge: 'Dành cho Học sinh',
+      studentCardTitle: 'Tham Gia Nhập Mã PIN',
+      studentCardDesc: 'Nhập mã PIN 6 chữ số để tham gia thi đấu cùng các bạn trong lớp trên điện thoại hoặc máy tính.',
+      btnEnterRoom: '<i class="fa-solid fa-right-to-bracket"></i> Vào Phòng Thi Đấu',
+      dashTitle: '<i class="fa-solid fa-layer-group"></i> Quản Lý Bộ Câu Hỏi Trắc Nghiệm',
+      btnCreateNewQuiz: '<i class="fa-solid fa-plus"></i> Tạo Bộ Câu Hỏi Mới',
+      tabMyQuizzes: '<i class="fa-solid fa-folder-open"></i> Bộ Câu Hỏi Của Tôi',
+      tabImport: '<i class="fa-solid fa-file-csv"></i> Import Từ File JSON / CSV',
+      tabEditor: '<i class="fa-solid fa-pen-to-square"></i> Soạn Thảo Câu Hỏi',
+      questionsCountText: 'câu hỏi',
+      btnHost: 'HOST GAME',
+      btnEdit: 'Sửa',
+      btnDelete: 'Xóa'
     },
     en: {
       settingsBtn: 'Settings',
@@ -2391,7 +2414,26 @@
       phoneLabel: 'Hotline / Zalo:',
       fanpageLink: 'Visit AI Practical Fanpage',
       donateDesc: 'If you find this useful, feel free to support via VPBank: <strong>290542325</strong>.',
-      qrCaption: 'QR "AI Practical"'
+      qrCaption: 'QR "AI Practical"',
+      heroTitle: 'Smart Classroom <br><span>Live Interactive Quiz Game</span>',
+      heroDesc: 'Kahoot-style quiz platform to boost classroom engagement. Import questions from Excel/Text in 5 seconds!',
+      teacherBadge: 'For Teachers',
+      teacherCardTitle: 'Create & Host Game',
+      teacherCardDesc: 'Import question sets from Excel, CSV, JSON or paste text. Master your live classroom.',
+      btnManageHost: '<i class="fa-solid fa-plus-circle"></i> Manage & Host Quizzes',
+      studentBadge: 'For Students',
+      studentCardTitle: 'Join with PIN Code',
+      studentCardDesc: 'Enter 6-digit PIN code to join the live quiz competition on mobile or desktop.',
+      btnEnterRoom: '<i class="fa-solid fa-right-to-bracket"></i> Join Game Room',
+      dashTitle: '<i class="fa-solid fa-layer-group"></i> Quiz Question Management',
+      btnCreateNewQuiz: '<i class="fa-solid fa-plus"></i> Create New Quiz Set',
+      tabMyQuizzes: '<i class="fa-solid fa-folder-open"></i> My Quiz Sets',
+      tabImport: '<i class="fa-solid fa-file-csv"></i> Import JSON / CSV',
+      tabEditor: '<i class="fa-solid fa-pen-to-square"></i> Question Editor',
+      questionsCountText: 'questions',
+      btnHost: 'HOST GAME',
+      btnEdit: 'Edit',
+      btnDelete: 'Delete'
     }
   };
 
@@ -2404,6 +2446,9 @@
         el.innerHTML = dict[key];
       }
     });
+
+    // Re-render dynamic quiz cards in the chosen language
+    renderQuizGrid();
   }
 
   function initSettingsSystem() {

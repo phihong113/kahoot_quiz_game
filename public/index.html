@@ -72,28 +72,28 @@
     <!-- ==================== SCREEN 1: ROLE SELECTOR / HOME ==================== -->
     <section id="screenHome" class="screen active">
       <div class="hero-section">
-        <h1 class="hero-title">Lớp Học Thông Minh <br><span>Trắc Nghiệm Tương Tác Trực Tiếp</span></h1>
-        <p class="hero-desc">Công cụ hỗ trợ giáo viên khởi động và ôn tập bài học sinh động phong cách Kahoot. Tải đề từ Excel chỉ 5 giây!</p>
+        <h1 class="hero-title" data-i18n="heroTitle">Lớp Học Thông Minh <br><span>Trắc Nghiệm Tương Tác Trực Tiếp</span></h1>
+        <p class="hero-desc" data-i18n="heroDesc">Công cụ hỗ trợ giáo viên khởi động và ôn tập bài học sinh động phong cách Kahoot. Tải đề từ Excel chỉ 5 giây!</p>
         
         <div class="role-cards">
           <!-- Teacher Card -->
           <div class="role-card teacher-card" id="cardSelectTeacher">
-            <div class="card-badge">Dành cho Giáo viên</div>
+            <div class="card-badge" data-i18n="teacherBadge">Dành cho Giáo viên</div>
             <div class="card-icon"><i class="fa-solid fa-chalkboard-user"></i></div>
-            <h2>Tạo & Host Trò Chơi</h2>
-            <p>Import bộ câu hỏi từ File Excel, CSV, JSON hoặc dán Văn bản. Làm chủ phòng học trực tuyến.</p>
-            <button class="btn-primary btn-lg">
+            <h2 data-i18n="teacherCardTitle">Tạo & Host Trò Chơi</h2>
+            <p data-i18n="teacherCardDesc">Import bộ câu hỏi từ File Excel, CSV, JSON hoặc dán Văn bản. Làm chủ phòng học trực tuyến.</p>
+            <button class="btn-primary btn-lg" data-i18n="btnManageHost">
               <i class="fa-solid fa-plus-circle"></i> Quản Lý & Host Bài Trắc Nghiệm
             </button>
           </div>
 
           <!-- Student Card -->
           <div class="role-card student-card" id="cardSelectStudent">
-            <div class="card-badge">Dành cho Học sinh</div>
+            <div class="card-badge" data-i18n="studentBadge">Dành cho Học sinh</div>
             <div class="card-icon"><i class="fa-solid fa-user-astronaut"></i></div>
-            <h2>Tham Gia Nhập Mã PIN</h2>
-            <p>Nhập mã PIN 6 chữ số để tham gia thi đấu cùng các bạn trong lớp trên điện thoại hoặc máy tính.</p>
-            <button class="btn-success btn-lg">
+            <h2 data-i18n="studentCardTitle">Tham Gia Nhập Mã PIN</h2>
+            <p data-i18n="studentCardDesc">Nhập mã PIN 6 chữ số để tham gia thi đấu cùng các bạn trong lớp trên điện thoại hoặc máy tính.</p>
+            <button class="btn-success btn-lg" data-i18n="btnEnterRoom">
               <i class="fa-solid fa-right-to-bracket"></i> Vào Phòng Thi Đấu
             </button>
           </div>
@@ -104,15 +104,15 @@
     <!-- ==================== SCREEN 2: TEACHER DASHBOARD & IMPORT ==================== -->
     <section id="screenTeacherDashboard" class="screen">
       <div class="dashboard-header">
-        <h2><i class="fa-solid fa-layer-group"></i> Quản Lý Bộ Câu Hỏi Trắc Nghiệm</h2>
-        <button id="btnCreateNewQuiz" class="btn-primary"><i class="fa-solid fa-plus"></i> Tạo Bộ Câu Hỏi Mới</button>
+        <h2 data-i18n="dashTitle"><i class="fa-solid fa-layer-group"></i> Quản Lý Bộ Câu Hỏi Trắc Nghiệm</h2>
+        <button id="btnCreateNewQuiz" class="btn-primary" data-i18n="btnCreateNewQuiz"><i class="fa-solid fa-plus"></i> Tạo Bộ Câu Hỏi Mới</button>
       </div>
 
       <!-- Tabs -->
       <div class="tab-nav">
-        <button class="tab-btn active" data-tab="tabMyQuizzes"><i class="fa-solid fa-folder-open"></i> Bộ Câu Hỏi Của Tôi</button>
-        <button class="tab-btn" data-tab="tabImport"><i class="fa-solid fa-file-csv"></i> Import Từ File JSON / CSV</button>
-        <button class="tab-btn" data-tab="tabEditor"><i class="fa-solid fa-pen-to-square"></i> Soạn Thảo Câu Hỏi</button>
+        <button class="tab-btn active" data-tab="tabMyQuizzes" data-i18n="tabMyQuizzes"><i class="fa-solid fa-folder-open"></i> Bộ Câu Hỏi Của Tôi</button>
+        <button class="tab-btn" data-tab="tabImport" data-i18n="tabImport"><i class="fa-solid fa-file-csv"></i> Import Từ File JSON / CSV</button>
+        <button class="tab-btn" data-tab="tabEditor" data-i18n="tabEditor"><i class="fa-solid fa-pen-to-square"></i> Soạn Thảo Câu Hỏi</button>
       </div>
 
       <!-- Tab Content 1: My Quizzes -->
