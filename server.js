@@ -397,6 +397,8 @@ function getLeaderboard(room) {
     .sort((a, b) => b.score - a.score);
 }
 
+const { exec } = require('child_process');
+
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, '0.0.0.0', () => {
   const localIp = getLocalIP();
@@ -406,6 +408,19 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log(`📱 Mạng Wi-Fi / Điện thoại: http://${localIp}:${PORT}`);
   console.log(`====================================================`);
   
+  // Tự động mở trình duyệt web mặc định khi nhấp đúp file .exe
+  setTimeout(() => {
+    try {
+      if (process.platform === 'win32') {
+        exec(`start http://localhost:${PORT}`);
+      } else if (process.platform === 'darwin') {
+        exec(`open http://localhost:${PORT}`);
+      } else {
+        exec(`xdg-open http://localhost:${PORT}`);
+      }
+    } catch (err) {}
+  }, 1000);
+
   // Auto start public tunnel for 4G/5G mobile connectivity
   setupPublicTunnel(PORT);
 });
