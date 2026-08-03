@@ -2231,7 +2231,7 @@
           licenseState.isVip = true;
           licenseState.email = cleanEmail;
           licenseState.customerName = data.name || name || 'Giáo Viên VIP';
-          licenseState.plan = 'Đã Kích Hoạt (Cột Active "x")';
+          licenseState.plan = 'Đã Kích Hoạt..';
           licenseState.expiresAt = 'Vĩnh viễn';
           licenseState.remainingDays = 9999;
 
