@@ -4,12 +4,38 @@ const { Server } = require('socket.io');
 const path = require('path');
 const os = require('os');
 
+const fs = require('fs');
+
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-app.use(express.static(path.join(__dirname, 'public')));
+// Robust static path resolution for Node CLI & pkg Executable binaries
+const publicDirInside = path.join(__dirname, 'public');
+const publicDirOutside = path.join(process.cwd(), 'public');
+
+if (fs.existsSync(publicDirOutside)) {
+  app.use(express.static(publicDirOutside));
+}
+if (fs.existsSync(publicDirInside)) {
+  app.use(express.static(publicDirInside));
+}
+
 app.use(express.json());
+
+// Fallback index.html route handler
+app.get('/', (req, res) => {
+  const indexOutside = path.join(publicDirOutside, 'index.html');
+  const indexInside = path.join(publicDirInside, 'index.html');
+
+  if (fs.existsSync(indexOutside)) {
+    return res.sendFile(indexOutside);
+  } else if (fs.existsSync(indexInside)) {
+    return res.sendFile(indexInside);
+  } else {
+    res.send('QuizMaster LIVE Server is running! Place the public folder next to the .exe file.');
+  }
+});
 
 // In-memory store for game rooms
 const rooms = {};
