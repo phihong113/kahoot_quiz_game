@@ -1,23 +1,18 @@
 /**
  * ============================================================================
  * GOOGLE APPS SCRIPT - BỘ QUẢN LÝ BẢN QUYỀN & XÁC THỰC GIÁO VIÊN QUIZMASTER LIVE
- * (TÍCH HỢP BẢO MẬT CHỐNG BẺ KHÓA & CHỐNG CHIA SẺ PHẦN MỀM)
+ * (TỰ ĐỘNG TẠO TIÊU ĐỀ CỘT & BẢO MẬT CHỐNG BẺ KHÓA)
  * ============================================================================
  * SỬ DỤNG CHO GOOGLE SHEET:
  * https://docs.google.com/spreadsheets/d/1ozyUT1aWEBl-RD5L-CE6_TSdbPLwioyUE-DeVBW_m8U/edit
  * 
- * CẤU TRÚC TIÊU ĐỀ HÀNG 1 TRÊN GOOGLE SHEET:
- * - Cột A: Email       (Email Google của Giáo viên)
- * - Cột B: Name        (Tên Giáo viên)
- * - Cột C: Active      (Đánh dấu "x" hoặc "active" để kích hoạt bản quyền VIP)
- * - Cột D: LastLogin   (Tự động ghi nhận ngày giờ đăng nhập mới nhất)
- * - Cột E: LicenseKey  (Mã kích hoạt VIP trực tiếp nếu có)
- * - Cột F: Devices     (Tự động ghi nhận Mã máy tính Hardware ID - Tối đa 2 máy/tài khoản)
+ * Hướng dẫn 3 bước cập nhật (Chỉ mất 30 giây):
+ * 1. Mở link Google Sheet ở trên.
+ * 2. Vào Tiện ích mở rộng (Extensions) -> Apps Script.
+ * 3. Dán đè toàn bộ mã bên dưới -> Bấm Lưu (Save) -> Bấm Triển khai (Deploy) -> Quản lý các bản triển khai (Manage deployments) -> Sửa (Edit) -> Chọn Phiên bản MỚI (New version) -> Triển khai (Deploy).
  * ============================================================================
  */
 
-// Mã Secret Token chống giả mạo API từ bên ngoài
-const SECRET_SALT = "QUIZMASTER_SECURE_TOKEN_2026";
 const MAX_ALLOWED_DEVICES = 2; // Số máy tối đa 1 tài khoản được phép sử dụng
 
 function doGet(e) {
@@ -25,6 +20,10 @@ function doGet(e) {
   const action = params.action || 'google_auth';
   
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  
+  // TỰ ĐỘNG KHỞI TẠO HÀNG TIÊU ĐỀ HÀNG 1 NẾU CHƯA CÓ HOẶC THIẾU CỘT
+  ensureHeadersExist(sheet);
+
   const data = sheet.getDataRange().getValues();
   if (!data || data.length === 0) {
     return jsonResponse({ success: false, message: 'Google Sheet rỗng!' });
@@ -61,6 +60,8 @@ function doGet(e) {
     let deviceAllowed = true;
     let deviceMsg = "";
 
+    const nowStr = new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
+
     for (let i = 1; i < data.length; i++) {
       const rowEmail = String(data[i][emailCol] || '').trim().toLowerCase();
       if (rowEmail === email) {
@@ -90,9 +91,9 @@ function doGet(e) {
           }
         }
 
-        // Cập nhật ngày giờ đăng nhập gần nhất
+        // TỰ ĐỘNG CẬP NHẬT CỘT LASTLOGIN (DÒNG i+1, CỘT lastLoginCol+1)
         try {
-          sheet.getRange(i + 1, lastLoginCol + 1).setValue(new Date().toLocaleString('vi-VN'));
+          sheet.getRange(i + 1, lastLoginCol + 1).setValue(nowStr);
         } catch (err) {}
         break;
       }
@@ -104,7 +105,7 @@ function doGet(e) {
       newRow[emailCol] = email;
       newRow[nameCol] = name || 'Giáo Viên Mới';
       newRow[activeCol] = ''; // Cột Active để trống -> Chờ Admin điền chữ 'x'
-      newRow[lastLoginCol] = new Date().toLocaleString('vi-VN');
+      newRow[lastLoginCol] = nowStr;
       if (deviceId) newRow[devicesCol] = deviceId;
       sheet.appendRow(newRow);
 
@@ -169,6 +170,33 @@ function doGet(e) {
   }
 
   return jsonResponse({ success: false, message: 'Action không hợp lệ!' });
+}
+
+/**
+ * Tự động kiểm tra và thêm tiêu đề hàng 1 nếu Google Sheet bị thiếu tiêu đề cột
+ */
+function ensureHeadersExist(sheet) {
+  const lastCol = Math.max(sheet.getLastColumn(), 6);
+  const row1Range = sheet.getRange(1, 1, 1, Math.max(lastCol, 6));
+  const row1Values = row1Range.getValues()[0];
+
+  const standardHeaders = ['Email', 'Name', 'Active', 'LastLogin', 'LicenseKey', 'Devices'];
+  let modified = false;
+
+  for (let i = 0; i < standardHeaders.length; i++) {
+    if (!row1Values[i] || String(row1Values[i]).trim() === '') {
+      row1Values[i] = standardHeaders[i];
+      modified = true;
+    }
+  }
+
+  if (modified) {
+    sheet.getRange(1, 1, 1, standardHeaders.length).setValues([standardHeaders]);
+    sheet.getRange(1, 1, 1, standardHeaders.length)
+      .setFontWeight('bold')
+      .setBackground('#4F46E5')
+      .setFontColor('#FFFFFF');
+  }
 }
 
 function jsonResponse(obj) {
