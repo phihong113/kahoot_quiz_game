@@ -7,6 +7,14 @@ echo   DANG KHOI DONG QUIZMASTER LIVE GAME SERVER...
 echo ====================================================
 echo.
 
+if exist QuizMaster_LIVE.exe (
+    echo [1/1] Dang khoi chay QuizMaster_LIVE.exe...
+    start http://localhost:3000
+    QuizMaster_LIVE.exe
+    pause
+    exit /b
+)
+
 node -v >nul 2>&1
 if %errorlevel% neq 0 (
     echo [LOI] May tinh chua cai dat Node.js!

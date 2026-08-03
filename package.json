@@ -6,7 +6,13 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "tunnel": "npx localtunnel --port 3000"
+    "tunnel": "npx localtunnel --port 3000",
+    "build-exe": "npx @yao-pkg/pkg server.js --targets node18-win-x64 --output QuizMaster_LIVE.exe"
+  },
+  "pkg": {
+    "assets": [
+      "public/**/*"
+    ]
   },
   "dependencies": {
     "express": "^4.19.2",
