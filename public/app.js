@@ -2355,6 +2355,16 @@
       });
     }
 
+    const btnVerifyEmailDirect = document.getElementById('btnVerifyGoogleEmailDirect');
+    if (btnVerifyEmailDirect) {
+      btnVerifyEmailDirect.addEventListener('click', async () => {
+        const inputElem = document.getElementById('txtGoogleEmailInput');
+        const emailVal = inputElem ? inputElem.value.trim() : '';
+        if (!emailVal) return alert('Vui lòng nhập Email Google của bạn!');
+        await checkAndVerifyGoogleTeacher(emailVal, 'Giáo Viên Google');
+      });
+    }
+
     const btnDeactivate = document.getElementById('btnDeactivateKey');
     if (btnDeactivate) {
       btnDeactivate.addEventListener('click', () => {

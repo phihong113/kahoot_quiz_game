@@ -1,21 +1,14 @@
 # 📖 HƯỚNG DẪN SỬ DỤNG QUIZMASTER LIVE
 
-Chào mừng thầy/cô đến với **QuizMaster LIVE** – Nền tảng trắc nghiệm tương tác trực tiếp 100% miễn phí dành cho giáo viên!
+Chào mừng thầy/cô đến với **QuizMaster LIVE** – Nền tảng trắc nghiệm tương tác trực tiếp  dành cho giáo viên!
 
 ---
 
-## 🚀 BƯỚC 1: CÀI ĐẶT BAN ĐẦU (CHỈ LÀM 1 LẦN DUY NHẤT)
 
-1. Mở thư mục ứng dụng **`kahoot_quiz_game`**.
-2. Nhấp đúp chuột vào file **`CAI_DAT_NODEJS.msi`** (Đã tải sẵn trong thư mục).
-3. Màn hình cài đặt hiện ra: Thầy/cô chỉ cần bấm **`Next`** $\rightarrow$ **`Next`** $\rightarrow$ **`Install`** $\rightarrow$ **`Finish`**.
-*(Nếu máy tính đã cài Node.js rồi thì có thể bỏ qua bước này).*
 
----
+## 🎮 BƯỚC 1: KHỞI ĐỘNG VÀ TẠO PHÒNG THI ĐẤU
 
-## 🎮 BƯỚC 2: KHỞI ĐỘNG VÀ TẠO PHÒNG THI ĐẤU
-
-1. Nhấp đúp chuột vào file **`CHAY_APP.bat`**.
+1. Nhấp đúp chuột vào file "QuizMaster_LIVE.exe"
 2. Hệ thống sẽ tự động mở trình duyệt web tại địa chỉ `http://localhost:3000`.
 3. Bấm **`Quản Lý & Host Bài Trắc Nghiệm`** (Dành cho Giáo viên).
 4. Thầy/cô có thể:
@@ -25,7 +18,7 @@ Chào mừng thầy/cô đến với **QuizMaster LIVE** – Nền tảng trắc
 
 ---
 
-## 📱 BƯỚC 3: HỌC SINH THAM GIA THI ĐẤU (4G/5G/Wi-Fi)
+## 📱 BƯỚC 2: HỌC SINH THAM GIA THI ĐẤU (4G/5G/Wi-Fi)
 
 1. Trên màn hình phòng chờ của Giáo viên sẽ tự động xuất hiện:
    - **Mã PIN 6 chữ số**.

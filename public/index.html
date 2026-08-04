@@ -589,11 +589,22 @@
             
             <!-- OFFICIAL GOOGLE OAUTH 2.0 SIGN-IN SECTION -->
             <div class="google-auth-box" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.18); border-radius: 16px; padding: 1.5rem; margin-bottom: 1.2rem; text-align: center;">
-              <h4 style="color: #ffcc00; margin-bottom: 0.5rem; font-size: 1.1rem;"><i class="fa-brands fa-google"></i> Đăng Nhập Tài Khoản Google Giáo Viên</h4>
-              <p style="font-size: 0.88rem; opacity: 0.85; margin-bottom: 1.25rem;">Đăng nhập bằng tài khoản Google để xác thực danh tính thực và tự động kiểm tra kích hoạt trên Google Sheet.</p>
+              <h4 style="color: #ffcc00; margin-bottom: 0.5rem; font-size: 1.1rem;"><i class="fa-brands fa-google"></i> Đăng Nhập / Xác Thực Email Google</h4>
+              <p style="font-size: 0.88rem; opacity: 0.85; margin-bottom: 1rem;">Xác thực tài khoản Google Giáo Viên để kiểm tra bản quyền VIP trên Google Sheet.</p>
               
               <!-- Container where official Google Sign-In button is rendered -->
-              <div id="googleSignInBtnContainer" style="display: flex; justify-content: center; margin-bottom: 0.5rem;"></div>
+              <div id="googleSignInBtnContainer" style="display: flex; justify-content: center; margin-bottom: 0.8rem;"></div>
+
+              <div style="display: flex; align-items: center; margin: 0.8rem 0; opacity: 0.6;">
+                <hr style="flex: 1; border-color: rgba(255,255,255,0.2);"><span style="padding: 0 10px; font-size: 0.78rem; text-transform: uppercase;">Hoặc Nhập Email Trực Tiếp</span><hr style="flex: 1; border-color: rgba(255,255,255,0.2);">
+              </div>
+
+              <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                <input type="email" id="txtGoogleEmailInput" class="form-control" placeholder="Ví dụ: giaovien@gmail.com" style="font-size: 0.9rem;">
+                <button id="btnVerifyGoogleEmailDirect" class="btn-primary" style="white-space: nowrap; padding: 0.5rem 1rem; background: linear-gradient(135deg, #4F46E5, #7C3AED);">
+                  <i class="fa-solid fa-check"></i> Xác Thực
+                </button>
+              </div>
             </div>
 
             <!-- LICENSE KEY FALLBACK SECTION -->

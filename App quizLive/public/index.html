@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QuizMaster LIVE - Nền Tảng Đấu Trí Trực Tuyến Dành Cho Giáo Viên & Học Sinh</title>
+  <meta name="description" content="Tạo trò chơi trắc nghiệm tương tác thời gian thực. Import câu hỏi từ Excel/CSV/JSON/Text nhanh chóng và dễ dàng.">
+  
+  <!-- Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,600&family=Montserrat:wght@600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Socket.io & Confetti & QR Code -->
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <script>
+    if (typeof io === 'undefined') {
+      document.write('<script src="/socket.io/socket.io.js"><\/script>');
+    }
+  </script>
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+  <!-- KaTeX Math Formula Rendering -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+  
+  <link rel="stylesheet" href="style.css">
+  <!-- Google Sign-In GIS API -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+
+  <div id="app" class="app-container">
+
+    <!-- ==================== HEADER ==================== -->
+    <header class="main-header">
+      <div class="logo-area" id="btnHome">
+        <div class="logo-icon"><i class="fa-solid fa-gamepad"></i></div>
+        <div class="logo-text">QuizMaster<span>LIVE</span></div>
+      </div>
+      <div class="header-actions">
+        <button id="btnOpenLicenseModal" class="btn-vip" title="Kích Hoạt / Quản Lý Bản Quyền VIP">
+          <i class="fa-solid fa-crown"></i> <span id="lblLicenseStatus">Kích Hoạt VIP</span>
+        </button>
+
+        <div class="music-selector-wrapper" style="display: inline-flex; align-items: center; gap: 0.5rem; background: rgba(255, 255, 255, 0.12); padding: 0.35rem 0.85rem; border-radius: 20px; border: 1px solid var(--glass-border);">
+          <i class="fa-solid fa-music" style="color: #ffcc00; font-size: 0.9rem;"></i>
+          <select id="bgMusicSelect" style="background: transparent; border: none; color: #fff; font-family: var(--font-family); font-size: 0.88rem; font-weight: 600; outline: none; cursor: pointer;">
+            <option value="kahoot" style="background: #2a085c; color: #fff;">🎵 Kahoot Funky</option>
+            <option value="edm" style="background: #2a085c; color: #fff;">🚀 EDM Hồi Hộp</option>
+            <option value="lofi" style="background: #2a085c; color: #fff;">🎷 Lofi Thư Giãn</option>
+            <option value="8bit" style="background: #2a085c; color: #fff;">🎮 8-Bit Retro Game</option>
+          </select>
+        </div>
+        <button id="btnSoundToggle" class="btn-icon" title="Bật/Tắt âm thanh">
+          <i class="fa-solid fa-volume-high"></i>
+        </button>
+        <button id="btnSettingsToggle" class="btn-secondary" title="Cài đặt">
+          <i class="fa-solid fa-gear"></i> <span data-i18n="settingsBtn">Cài Đặt</span>
+        </button>
+        <button id="btnRoleSwitch" class="btn-secondary">
+          <i class="fa-solid fa-arrows-rotate"></i> <span data-i18n="roleSwitchBtn">Đổi Vai Trò</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- ==================== SCREEN 1: ROLE SELECTOR / HOME ==================== -->
+    <section id="screenHome" class="screen active">
+      <div class="hero-section">
+        <h1 class="hero-title" data-i18n="heroTitle">Lớp Học Thông Minh <br><span>Trắc Nghiệm Tương Tác Trực Tiếp</span></h1>
+        <p class="hero-desc" data-i18n="heroDesc">Công cụ hỗ trợ giáo viên khởi động và ôn tập bài học sinh động phong cách Kahoot. Tải đề từ Excel chỉ 5 giây!</p>
+        
+        <div class="role-cards">
+          <!-- Teacher Card -->
+          <div class="role-card teacher-card" id="cardSelectTeacher">
+            <div class="card-badge" data-i18n="teacherBadge">Dành cho Giáo viên</div>
+            <div class="card-icon"><i class="fa-solid fa-chalkboard-user"></i></div>
+            <h2 data-i18n="teacherCardTitle">Tạo & Host Trò Chơi</h2>
+            <p data-i18n="teacherCardDesc">Import bộ câu hỏi từ File Excel, CSV, JSON hoặc dán Văn bản. Làm chủ phòng học trực tuyến.</p>
+            <button class="btn-primary btn-lg" data-i18n="btnManageHost">
+              <i class="fa-solid fa-plus-circle"></i> Quản Lý & Host Bài Trắc Nghiệm
+            </button>
+          </div>
+
+          <!-- Student Card -->
+          <div class="role-card student-card" id="cardSelectStudent">
+            <div class="card-badge" data-i18n="studentBadge">Dành cho Học sinh</div>
+            <div class="card-icon"><i class="fa-solid fa-user-astronaut"></i></div>
+            <h2 data-i18n="studentCardTitle">Tham Gia Nhập Mã PIN</h2>
+            <p data-i18n="studentCardDesc">Nhập mã PIN 6 chữ số để tham gia thi đấu cùng các bạn trong lớp trên điện thoại hoặc máy tính.</p>
+            <button class="btn-success btn-lg" data-i18n="btnEnterRoom">
+              <i class="fa-solid fa-right-to-bracket"></i> Vào Phòng Thi Đấu
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== SCREEN 2: TEACHER DASHBOARD & IMPORT ==================== -->
+    <section id="screenTeacherDashboard" class="screen">
+      <div class="dashboard-header">
+        <h2 data-i18n="dashTitle"><i class="fa-solid fa-layer-group"></i> Quản Lý Bộ Câu Hỏi Trắc Nghiệm</h2>
+        <button id="btnCreateNewQuiz" class="btn-primary" data-i18n="btnCreateNewQuiz"><i class="fa-solid fa-plus"></i> Tạo Bộ Câu Hỏi Mới</button>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tab-nav">
+        <button class="tab-btn active" data-tab="tabMyQuizzes" data-i18n="tabMyQuizzes"><i class="fa-solid fa-folder-open"></i> Bộ Câu Hỏi Của Tôi</button>
+        <button class="tab-btn" data-tab="tabImport" data-i18n="tabImport"><i class="fa-solid fa-file-csv"></i> Import Từ File JSON / CSV</button>
+        <button class="tab-btn" data-tab="tabEditor" data-i18n="tabEditor"><i class="fa-solid fa-pen-to-square"></i> Soạn Thảo Câu Hỏi</button>
+      </div>
+
+      <!-- Tab Content 1: My Quizzes -->
+      <div id="tabMyQuizzes" class="tab-content active">
+        <div class="quiz-grid" id="quizGrid">
+          <!-- Quiz cards rendered via JS -->
+        </div>
+      </div>
+
+      <!-- Tab Content 2: Import Questions -->
+      <div id="tabImport" class="tab-content">
+        <div class="import-container">
+          <div class="import-methods">
+            
+            <!-- File Import Box (JSON & CSV) -->
+            <div class="import-box json-single-box">
+              <h3><i class="fa-solid fa-file-arrow-up"></i> Import Bộ Câu Hỏi Từ File .JSON Hoặc .CSV</h3>
+              <p>Chọn hoặc kéo thả file <strong>.JSON</strong> hoặc <strong>.CSV</strong> chứa danh sách câu hỏi để tạo bộ trắc nghiệm tự động.</p>
+              
+              <div class="drop-zone" id="dropZone">
+                <i class="fa-solid fa-cloud-arrow-up drop-icon"></i>
+                <p>Kéo thả file vào đây hoặc <label for="fileInput" class="link-label">Bấm để chọn file .JSON / .CSV</label></p>
+                <input type="file" id="fileInput" accept=".json,.csv" hidden>
+                <span class="file-types">Hỗ trợ định dạng: <strong>.JSON</strong>, <strong>.CSV (Excel)</strong></span>
+              </div>
+
+              <div class="sample-downloads" style="display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap;">
+                <span>Tải file mẫu chuẩn:</span>
+                <a href="/sample_questions.json" download class="btn-link"><i class="fa-solid fa-download"></i> File JSON Mẫu</a>
+                <a href="/sample_questions.csv" download class="btn-link" style="color: #10b981;"><i class="fa-solid fa-file-excel"></i> File CSV Mẫu</a>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Preview & Save Box -->
+          <div class="preview-section" id="importPreviewArea" style="display: none;">
+            <div class="preview-header">
+              <h3><i class="fa-solid fa-eye"></i> Xem Trước Danh Sách Câu Hỏi (<span id="previewCount">0</span> câu)</h3>
+              <div class="form-group inline-group">
+                <label>Tên Bộ Câu Hỏi:</label>
+                <input type="text" id="importQuizTitle" class="form-control" placeholder="Ví dụ: Kiểm tra Toán 15 phút">
+              </div>
+            </div>
+
+            <div class="questions-preview-list" id="previewQuestionsList"></div>
+
+            <div class="preview-actions">
+              <button id="btnSaveImportedQuiz" class="btn-success btn-lg">
+                <i class="fa-solid fa-floppy-disk"></i> Lưu Bộ Câu Hỏi Này
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Tab Content 3: Editor -->
+      <div id="tabEditor" class="tab-content">
+        <div class="editor-container">
+          <div class="editor-header">
+            <input type="text" id="editorQuizTitle" class="form-control title-input" placeholder="Nhập tiêu đề Bộ Câu Hỏi...">
+            <button id="btnSaveEditorQuiz" class="btn-primary"><i class="fa-solid fa-check"></i> Lưu Bài Trắc Nghiệm</button>
+          </div>
+
+          <div id="editorQuestionsList" class="editor-questions-list">
+            <!-- Questions added dynamically -->
+          </div>
+
+          <button id="btnAddEditorQuestion" class="btn-dashed full-width">
+            <i class="fa-solid fa-plus"></i> Thêm Câu Hỏi Mới
+          </button>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ==================== SCREEN 3: TEACHER LOBBY (WAITING ROOM) ==================== -->
+    <section id="screenTeacherLobby" class="screen">
+      <div class="lobby-wrapper">
+        <div class="lobby-header">
+          <div class="lobby-title">Tham gia trò chơi tại địa chỉ:</div>
+          <div class="lobby-url" id="lobbyHostUrl">http://localhost:3000</div>
+          <div class="lobby-pin-box">
+            <span class="pin-label">MÃ GAME PIN:</span>
+            <div class="pin-code" id="lobbyPinDisplay">------</div>
+          </div>
+        </div>
+
+        <div class="lobby-main">
+          <div class="lobby-qr-container">
+            <div id="lobbyQrCode"></div>
+            <div class="qr-hint">Quét mã QR để tham gia nhanh</div>
+          </div>
+
+          <div class="lobby-players-area">
+            <div class="players-header">
+              <h3><i class="fa-solid fa-users"></i> Học sinh đã vào phòng (<span id="playerCount">0</span>)</h3>
+              <button id="btnStartGame" class="btn-success btn-xl pulse-btn">
+                <i class="fa-solid fa-play"></i> BẮT ĐẦU TRÒ CHƠI
+              </button>
+            </div>
+            
+            <div class="player-chips-grid" id="lobbyPlayerGrid">
+              <!-- Player avatar chips -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== SCREEN 4: TEACHER QUESTION HOST ==================== -->
+    <section id="screenTeacherQuestion" class="screen">
+      <div class="host-q-header">
+        <div class="q-progress">Câu <span id="hostQIndex">1</span> / <span id="hostQTotal">5</span></div>
+        <div class="q-timer-badge"><i class="fa-solid fa-stopwatch"></i> <span id="hostTimerText">20</span>s</div>
+        <div class="q-counter-badge"><i class="fa-solid fa-paper-plane"></i> <span id="hostAnsweredCount">0</span>/<span id="hostTotalPlayers">0</span> đã trả lời</div>
+      </div>
+
+      <div class="timer-bar-container">
+        <div id="hostTimerBar" class="timer-bar"></div>
+      </div>
+
+      <div class="host-q-main">
+        <h2 class="host-question-text" id="hostQuestionText">Đang tải câu hỏi...</h2>
+        <div id="hostQuestionImg" class="q-image-box" style="display:none;"></div>
+      </div>
+
+      <!-- 4 Answer Option Cards -->
+      <div class="host-options-grid">
+        <div class="option-card red-option">
+          <div class="option-shape"><i class="fa-solid fa-caret-up"></i></div>
+          <div class="option-text" id="hostOpt0">Đáp án A</div>
+        </div>
+        <div class="option-card blue-option">
+          <div class="option-shape"><i class="fa-solid fa-diamond"></i></div>
+          <div class="option-text" id="hostOpt1">Đáp án B</div>
+        </div>
+        <div class="option-card yellow-option">
+          <div class="option-shape"><i class="fa-solid fa-circle"></i></div>
+          <div class="option-text" id="hostOpt2">Đáp án C</div>
+        </div>
+        <div class="option-card green-option">
+          <div class="option-shape"><i class="fa-solid fa-square"></i></div>
+          <div class="option-text" id="hostOpt3">Đáp án D</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== SCREEN 5: TEACHER QUESTION REVEAL (STATS) ==================== -->
+    <section id="screenTeacherReveal" class="screen">
+      <div class="reveal-wrapper">
+        <h2 class="reveal-title">KẾT QUẢ CÂU HỎI</h2>
+        <h3 id="revealQuestionText" class="reveal-question-subtitle">...</h3>
+
+        <!-- Chart Bars -->
+        <div class="stats-chart">
+          <div class="chart-col red-col">
+            <div class="bar-wrapper">
+              <span class="bar-count" id="statCount0">0</span>
+              <div class="bar-fill" id="statBar0" style="height: 0%;"></div>
+            </div>
+            <div class="col-label"><i class="fa-solid fa-caret-up"></i> A</div>
+          </div>
+
+          <div class="chart-col blue-col">
+            <div class="bar-wrapper">
+              <span class="bar-count" id="statCount1">0</span>
+              <div class="bar-fill" id="statBar1" style="height: 0%;"></div>
+            </div>
+            <div class="col-label"><i class="fa-solid fa-diamond"></i> B</div>
+          </div>
+
+          <div class="chart-col yellow-col">
+            <div class="bar-wrapper">
+              <span class="bar-count" id="statCount2">0</span>
+              <div class="bar-fill" id="statBar2" style="height: 0%;"></div>
+            </div>
+            <div class="col-label"><i class="fa-solid fa-circle"></i> C</div>
+          </div>
+
+          <div class="chart-col green-col">
+            <div class="bar-wrapper">
+              <span class="bar-count" id="statCount3">0</span>
+              <div class="bar-fill" id="statBar3" style="height: 0%;"></div>
+            </div>
+            <div class="col-label"><i class="fa-solid fa-square"></i> D</div>
+          </div>
+        </div>
+
+        <div class="correct-answer-banner">
+          <span>Đáp án chính xác: </span>
+          <strong id="correctAnswerLabel">B</strong>
+        </div>
+
+        <!-- Explanation Callout Box -->
+        <div id="explanationBox" class="explanation-box" style="display: none;">
+          <div class="explanation-header"><i class="fa-solid fa-lightbulb"></i> GIẢI THÍCH CHI TIẾT</div>
+          <div id="explanationText" class="explanation-content"></div>
+        </div>
+
+        <div class="reveal-actions">
+          <button id="btnHostNextStep" class="btn-primary btn-xl">
+            Tiếp Theo <i class="fa-solid fa-arrow-right"></i>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== SCREEN 6: TEACHER LEADERBOARD ==================== -->
+    <section id="screenTeacherLeaderboard" class="screen">
+      <div class="leaderboard-wrapper">
+        <h2 class="lb-title"><i class="fa-solid fa-trophy"></i> BẢNG XẾP HẠNG TẠM THỜI</h2>
+        
+        <div class="lb-list" id="lbList">
+          <!-- Dynamic leaderboard items -->
+        </div>
+
+        <div class="lb-actions">
+          <button id="btnLbNext" class="btn-success btn-xl">
+            Câu Tiếp Theo <i class="fa-solid fa-forward"></i>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== SCREEN 7: PODIUM VICTORY SCREEN ==================== -->
+    <section id="screenPodium" class="screen">
+      <div class="podium-wrapper">
+        <h1 class="victory-title">🎉 CHIẾN THẮNG CHUNG CUỘC 🎉</h1>
+        
+        <div class="podium-stage">
+          <!-- 2nd Place -->
+          <div class="podium-pillar place-2" id="podium2" style="display:none;">
+            <div class="podium-avatar" id="p2Avatar">🐱</div>
+            <div class="podium-name" id="p2Name">Hạng 2</div>
+            <div class="podium-score" id="p2Score">0 đ</div>
+            <div class="pillar-block">2</div>
+          </div>
+
+          <!-- 1st Place -->
+          <div class="podium-pillar place-1" id="podium1" style="display:none;">
+            <div class="crown"><i class="fa-solid fa-crown"></i></div>
+            <div class="podium-avatar" id="p1Avatar">🦊</div>
+            <div class="podium-name" id="p1Name">Hạng 1</div>
+            <div class="podium-score" id="p1Score">0 đ</div>
+            <div class="pillar-block">1</div>
+          </div>
+
+          <!-- 3rd Place -->
+          <div class="podium-pillar place-3" id="podium3" style="display:none;">
+            <div class="podium-avatar" id="p3Avatar">🐼</div>
+            <div class="podium-name" id="p3Name">Hạng 3</div>
+            <div class="podium-score" id="p3Score">0 đ</div>
+            <div class="pillar-block">3</div>
+          </div>
+        </div>
+
+        <div class="podium-actions">
+          <button id="btnPlayAgain" class="btn-primary btn-xl">
+            <i class="fa-solid fa-rotate-left"></i> Quay Về Trang Chủ
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== SCREEN 8: STUDENT JOIN ==================== -->
+    <section id="screenStudentJoin" class="screen">
+      <div class="student-join-card">
+        <div class="join-header">
+          <div class="kahoot-logo-icon">K</div>
+          <h2>Tham Gia Kahoot</h2>
+        </div>
+
+        <form id="formStudentJoin">
+          <div class="form-group">
+            <input type="text" id="inputPin" class="input-giant" placeholder="Mã Game PIN" maxlength="6" pattern="[0-9]*" inputmode="numeric" required>
+          </div>
+
+          <div class="form-group">
+            <input type="text" id="inputNickname" class="input-lg" placeholder="Nhập Tên / Biệt danh..." maxlength="20" required>
+          </div>
+
+          <div class="form-group">
+            <label class="label-sub">Chọn Linh Vật Avatar:</label>
+            <div class="avatar-selector" id="avatarSelector">
+              <span class="avatar-opt active" data-avatar="🐱">🐱</span>
+              <span class="avatar-opt" data-avatar="🦊">🦊</span>
+              <span class="avatar-opt" data-avatar="🐼">🐼</span>
+              <span class="avatar-opt" data-avatar="🦁">🦁</span>
+              <span class="avatar-opt" data-avatar="🦄">🦄</span>
+              <span class="avatar-opt" data-avatar="🚀">🚀</span>
+              <span class="avatar-opt" data-avatar="⚡">⚡</span>
+              <span class="avatar-opt" data-avatar="🔥">🔥</span>
+            </div>
+          </div>
+
+          <button type="submit" class="btn-dark-primary full-width btn-xl">
+            SẴN SÀNG THAM GIA <i class="fa-solid fa-arrow-right"></i>
+          </button>
+        </form>
+      </div>
+    </section>
+
+    <!-- ==================== SCREEN 9: STUDENT WAITING LOBBY ==================== -->
+    <section id="screenStudentWaiting" class="screen">
+      <div class="student-waiting-card">
+        <div class="waiting-avatar" id="studentMyAvatar">🐱</div>
+        <h2 id="studentMyName">Học sinh</h2>
+        <div class="status-pill">Đã vào phòng thành công!</div>
+        <p class="waiting-hint">Hãy nhìn lên màn hình giáo viên và chờ cuộc thi bắt đầu...</p>
+        <div class="pulse-ring"></div>
+      </div>
+    </section>
+
+    <!-- ==================== SCREEN 10: STUDENT QUESTION BUTTONS ==================== -->
+    <section id="screenStudentPlay" class="screen">
+      <div class="student-q-header">
+        <div class="student-q-title" id="studentQTitle">Câu <span id="studentQNum">1</span></div>
+        <div class="student-timer" id="studentTimer">20s</div>
+      </div>
+
+      <div class="student-buttons-grid">
+        <button class="student-btn red-btn" data-choice="0">
+          <i class="fa-solid fa-caret-up"></i>
+        </button>
+        <button class="student-btn blue-btn" data-choice="1">
+          <i class="fa-solid fa-diamond"></i>
+        </button>
+        <button class="student-btn yellow-btn" data-choice="2">
+          <i class="fa-solid fa-circle"></i>
+        </button>
+        <button class="student-btn green-btn" data-choice="3">
+          <i class="fa-solid fa-square"></i>
+        </button>
+      </div>
+    </section>
+
+    <!-- ==================== SCREEN 11: STUDENT SUBMITTED WAITING ==================== -->
+    <section id="screenStudentSubmitted" class="screen">
+      <div class="submitted-box">
+        <div class="spinner"><i class="fa-solid fa-spinner fa-spin"></i></div>
+        <h2>Đã ghi nhận câu trả lời!</h2>
+        <p>Đang chờ kết quả từ giáo viên...</p>
+      </div>
+    </section>
+
+    <!-- ==================== SCREEN 12: STUDENT RESULT FEEDBACK ==================== -->
+    <section id="screenStudentResult" class="screen">
+      <div class="student-result-card" id="studentResultCard">
+        <div class="result-icon" id="studentResultIcon"><i class="fa-solid fa-check"></i></div>
+        <h2 id="studentResultTitle">ĐÚNG RỒI!</h2>
+        <div class="points-gained" id="studentPointsGained">+950 điểm</div>
+
+        <div class="stats-row">
+          <div class="stat-item">
+            <span class="stat-label">Tổng điểm:</span>
+            <span class="stat-value" id="studentTotalScore">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Chuỗi thắng:</span>
+            <span class="stat-value" id="studentStreak">🔥 0</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== FOOTER ==================== -->
+    <footer class="app-footer">
+      <div class="footer-card" style="justify-content: center; text-align: center; padding: 1rem 1.5rem; max-width: 800px; margin: 1.5rem auto 0 auto;">
+        <div style="font-size: 0.88rem; opacity: 0.85;">
+          © 2026 <strong>QuizMaster LIVE</strong> • Nền tảng trắc nghiệm trực tuyến dành cho Giáo viên & Học sinh
+        </div>
+      </div>
+    </footer>
+
+    <!-- ==================== SETTINGS MODAL ==================== -->
+    <div id="modalSettings" class="modal-overlay" style="display: none;">
+      <div class="modal-card settings-modal-card" style="max-width: 620px;">
+        <button id="btnCloseSettingsModal" class="modal-close-btn">&times;</button>
+        
+        <div class="modal-header" style="margin-bottom: 1.25rem;">
+          <div class="modal-icon" style="background: rgba(255, 204, 0, 0.15); color: #ffcc00;"><i class="fa-solid fa-gear"></i></div>
+          <h2><span data-i18n="settingsTitle">Cài Đặt Hệ Thống</span> <span>QuizMaster</span></h2>
+          <p data-i18n="settingsSubtitle">Tùy chỉnh ngôn ngữ, chế độ hiển thị và thông tin ứng dụng</p>
+        </div>
+
+        <div class="modal-body" style="display: flex; flex-direction: column; gap: 1.2rem;">
+          <!-- 1. Language Setting -->
+          <div class="settings-section" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 16px; padding: 1.2rem;">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
+              <div>
+                <h4 style="color: #ffcc00; font-size: 1.05rem; margin-bottom: 0.25rem;" data-i18n="langSettingTitle"><i class="fa-solid fa-globe"></i> Ngôn Ngữ / Language</h4>
+                <p style="font-size: 0.85rem; opacity: 0.8; margin: 0;" data-i18n="langSettingDesc">Chọn ngôn ngữ hiển thị giao diện</p>
+              </div>
+              <select id="settingLanguage" class="form-control" style="width: auto; min-width: 140px; padding: 0.45rem 0.85rem; font-weight: 600; cursor: pointer;">
+                <option value="vi">🇻🇳 Tiếng Việt</option>
+                <option value="en">🇬🇧 English</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- 2. Explanation Toggle Setting -->
+          <div class="settings-section" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 16px; padding: 1.2rem;">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
+              <div>
+                <h4 style="color: #ffcc00; font-size: 1.05rem; margin-bottom: 0.25rem;" data-i18n="expSettingTitle"><i class="fa-solid fa-lightbulb"></i> Hiển Thị Lời Giải Thích</h4>
+                <p style="font-size: 0.85rem; opacity: 0.8; margin: 0;" data-i18n="expSettingDesc">Tắt nếu không muốn hiện phần giải thích sau khi công bố đáp án</p>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="settingShowExplanation" checked>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <!-- 3. About / App Info Section -->
+          <div class="settings-section" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 16px; padding: 1.2rem;">
+            <h4 style="color: #ffcc00; font-size: 1.05rem; margin-bottom: 0.85rem;" data-i18n="aboutTitle"><i class="fa-solid fa-circle-info"></i> Giới Thiệu & Liên Hệ Hỗ Trợ</h4>
+            
+            <div class="about-content" style="display: flex; flex-direction: column; gap: 0.75rem; font-size: 0.9rem;">
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fa-solid fa-phone" style="color: #ffcc00; width: 20px;"></i>
+                <span><strong data-i18n="phoneLabel">Hotline / Zalo:</strong> <a href="tel:0916941504" style="color: #4da6ff; font-weight: 600;">091.694.1504</a></span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fa-solid fa-envelope" style="color: #ffcc00; width: 20px;"></i>
+                <span><strong>Email:</strong> <a href="mailto:huyhoang194@gmail.com" style="color: #4da6ff; font-weight: 600;">huyhoang194@gmail.com</a></span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fa-brands fa-facebook" style="color: #ffcc00; width: 20px;"></i>
+                <span><strong>Fanpage:</strong> <a href="https://www.facebook.com/AIFTG" target="_blank" rel="noopener noreferrer" style="color: #4da6ff; font-weight: 600;" data-i18n="fanpageLink">Ghé thăm Fanpage AI Thực Chiến</a></span>
+              </div>
+
+              <div style="background: rgba(255,204,0,0.1); border-left: 3px solid #ffcc00; padding: 0.75rem 1rem; border-radius: 8px; margin-top: 0.25rem;">
+                <i class="fa-solid fa-heart" style="color: #ff4757; margin-right: 0.35rem;"></i>
+                <span data-i18n="donateDesc">Nếu thấy những chia sẻ này hữu ích, bạn có thể ủng hộ dự án qua VPBank: <strong>290542325</strong>.</span>
+              </div>
+
+              <div style="text-align: center; margin-top: 0.5rem;">
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=https://www.facebook.com/AIFTG" alt="QR Code AI thực chiến" style="width: 110px; height: 110px; border-radius: 12px; border: 2px solid rgba(255,255,255,0.2); margin-bottom: 0.35rem;" />
+                <div style="font-size: 0.8rem; opacity: 0.75;" data-i18n="qrCaption">QR "AI thực chiến"</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ==================== VIP LICENSE MODAL ==================== -->
+    <div id="modalLicense" class="modal-overlay" style="display: none;">
+      <div class="modal-card">
+        <button id="btnCloseLicenseModal" class="modal-close-btn">&times;</button>
+        
+        <div class="modal-header">
+          <div class="modal-icon"><i class="fa-solid fa-crown"></i></div>
+          <h2>Kích Hoạt Bản Quyền <span>QuizMaster VIP</span></h2>
+          <p>Đăng nhập tài khoản Google Giáo Viên để đồng bộ dữ liệu và kích hoạt quyền dùng trực tuyến trên Vercel</p>
+        </div>
+
+        <div class="modal-body">
+          <div id="licenseInfoBox" class="license-status-box" style="display: none;">
+            <div class="status-badge success"><i class="fa-solid fa-circle-check"></i> Bản Quyền Đang Hoạt Động</div>
+            <div class="license-details">
+              <p><strong>Giáo viên:</strong> <span id="licCustomerName">...</span></p>
+              <p><strong>Email Google:</strong> <span id="licEmail">...</span></p>
+              <p><strong>Trạng thái:</strong> <span id="licPlanName" style="color: #10b981; font-weight: bold;">Đã Kích Hoạt..</span></p>
+            </div>
+            <button id="btnDeactivateKey" class="btn-secondary btn-sm" style="margin-top: 0.75rem; color: #ff6b6b; border-color: rgba(255, 107, 107, 0.4);"><i class="fa-solid fa-right-from-bracket"></i> Đăng xuất tài khoản này</button>
+          </div>
+
+          <div id="licenseInputArea" class="license-input-form">
+            
+            <!-- OFFICIAL GOOGLE OAUTH 2.0 SIGN-IN SECTION -->
+            <div class="google-auth-box" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.18); border-radius: 16px; padding: 1.5rem; margin-bottom: 1.2rem; text-align: center;">
+              <h4 style="color: #ffcc00; margin-bottom: 0.5rem; font-size: 1.1rem;"><i class="fa-brands fa-google"></i> Đăng Nhập Tài Khoản Google Giáo Viên</h4>
+              <p style="font-size: 0.88rem; opacity: 0.85; margin-bottom: 1.25rem;">Đăng nhập bằng tài khoản Google để xác thực danh tính thực và tự động kiểm tra kích hoạt trên Google Sheet.</p>
+              
+              <!-- Container where official Google Sign-In button is rendered -->
+              <div id="googleSignInBtnContainer" style="display: flex; justify-content: center; margin-bottom: 0.5rem;"></div>
+            </div>
+
+            <!-- LICENSE KEY FALLBACK SECTION -->
+            <div class="form-group" style="margin-top: 1rem;">
+              <label style="font-size: 0.88rem; opacity: 0.8;"><i class="fa-solid fa-key"></i> Hoặc Nhập Mã License Key trực tiếp:</label>
+              <div style="display: flex; gap: 0.5rem;">
+                <input type="text" id="txtLicenseKey" class="form-control text-uppercase" placeholder="Ví dụ: VIP-PRO-2026" style="font-size: 0.95rem; letter-spacing: 1px;">
+                <button id="btnVerifyLicenseKey" class="btn-secondary" style="white-space: nowrap; padding: 0.5rem 1rem;">
+                  Kích Hoạt
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
