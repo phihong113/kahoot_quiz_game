@@ -1325,7 +1325,12 @@
         for (let i = 0; i < line.length; i++) {
           const char = line[i];
           if (char === '"') {
-            insideQuote = !insideQuote;
+            if (insideQuote && line[i + 1] === '"') {
+              cell += '"';
+              i++;
+            } else {
+              insideQuote = !insideQuote;
+            }
           } else if (char === delimiter && !insideQuote) {
             row.push(cell.trim().replace(/^"|"$/g, ''));
             cell = '';
@@ -1344,7 +1349,7 @@
 
     let startIdx = 0;
     const headerLine = rows[0].map(c => String(c || '').toLowerCase());
-    const isHeader = headerLine.some(c => c.includes('câu hỏi') || c.includes('question') || c.includes('phương án') || c.includes('đáp án'));
+    const isHeader = headerLine.some(c => c.includes('câu hỏi') || c.includes('question') || c.includes('phương án') || c.includes('đáp án') || c.includes('loại'));
     if (isHeader) {
       startIdx = 1;
     }
@@ -1354,55 +1359,104 @@
       const row = rows[i];
       if (!row || row.length < 2) continue;
 
-      const questionText = row[0] ? row[0].trim() : '';
-      if (!questionText) continue;
+      const col0Raw = row[0] ? row[0].trim() : '';
+      if (!col0Raw) continue;
+
+      const col0Lower = col0Raw.toLowerCase();
 
       let type = 'quiz';
+      let questionText = '';
       let options = ['A', 'B', 'C', 'D'];
       let correctAnswerText = '';
       let correctIndex = 0;
       let timeLimit = 20;
       let explanation = '';
 
-      // Check if type is explicitly specified or infer from row length / contents
-      const firstColLower = questionText.toLowerCase();
-      const col1Lower = String(row[1] || '').trim().toLowerCase();
+      // Recognized question type keywords in Col 0
+      const isCol0Type = ['quiz', 'true_false', 'type_answer', 'trắc nghiệm', 'đúng/sai', 'tự luận', 'nhập đáp án'].includes(col0Lower);
 
-      if (row.length === 2 || col1Lower === 'type_answer' || col1Lower === 'tự luận' || col1Lower === 'nhập đáp án') {
-        type = 'type_answer';
-        correctAnswerText = row[1] || '';
-        options = [correctAnswerText];
-        timeLimit = parseInt((row[2] || '20').trim(), 10) || 20;
-        explanation = (row[3] || '').trim();
-      } else if (col1Lower === 'true_false' || col1Lower === 'đúng/sai' || (row.length <= 4 && (col1Lower === 'đúng' || col1Lower === 'sai' || col1Lower === 'true' || col1Lower === 'false'))) {
-        type = 'true_false';
-        options = ['Đúng', 'Sai'];
-        let rawVal = col1Lower;
-        if (col1Lower === 'true_false' || col1Lower === 'đúng/sai') {
-          rawVal = String(row[2] || '').trim().toLowerCase();
-          timeLimit = parseInt((row[3] || '20').trim(), 10) || 20;
-          explanation = (row[4] || '').trim();
+      if (isCol0Type) {
+        // Format A: Col 0 is Question Type ("Loại câu hỏi")
+        if (col0Lower === 'true_false' || col0Lower === 'đúng/sai') {
+          type = 'true_false';
+        } else if (col0Lower === 'type_answer' || col0Lower === 'tự luận' || col0Lower === 'nhập đáp án') {
+          type = 'type_answer';
         } else {
+          type = 'quiz';
+        }
+
+        questionText = String(row[1] || '').trim();
+        if (!questionText) continue;
+
+        if (type === 'type_answer') {
+          correctAnswerText = String(row[2] || row[6] || '').trim();
+          options = [correctAnswerText];
+          timeLimit = parseInt((row[7] || row[3] || '20').trim(), 10) || 20;
+          explanation = String(row[8] || row[4] || '').trim();
+        } else if (type === 'true_false') {
+          options = [String(row[2] || 'Đúng').trim(), String(row[3] || 'Sai').trim()];
+          let rawVal = String(row[6] || row[2] || '').trim().toLowerCase();
+          correctIndex = (rawVal === 'b' || rawVal === 'sai' || rawVal === '1') ? 1 : 0;
+          timeLimit = parseInt((row[7] || row[4] || '20').trim(), 10) || 20;
+          explanation = String(row[8] || row[5] || '').trim();
+        } else {
+          // 'quiz'
+          options = [String(row[2] || '').trim(), String(row[3] || '').trim(), String(row[4] || '').trim(), String(row[5] || '').trim()];
+          let correctRaw = String(row[6] || 'A').trim().toUpperCase();
+          if (correctRaw === 'A' || correctRaw === '1') correctIndex = 0;
+          else if (correctRaw === 'B' || correctRaw === '2') correctIndex = 1;
+          else if (correctRaw === 'C' || correctRaw === '3') correctIndex = 2;
+          else if (correctRaw === 'D' || correctRaw === '4') correctIndex = 3;
+          else {
+            const parsed = parseInt(correctRaw, 10);
+            if (!isNaN(parsed) && parsed >= 0 && parsed <= 3) correctIndex = parsed;
+            else correctIndex = 0;
+          }
+          timeLimit = parseInt((row[7] || '20').trim(), 10) || 20;
+          explanation = String(row[8] || '').trim();
+        }
+      } else {
+        // Format B: Legacy format where Col 0 is Question Text
+        questionText = col0Raw;
+        const col1Lower = String(row[1] || '').trim().toLowerCase();
+
+        if (row.length === 2 || col1Lower === 'type_answer' || col1Lower === 'tự luận' || col1Lower === 'nhập đáp án') {
+          type = 'type_answer';
+          correctAnswerText = row[1] || '';
+          options = [correctAnswerText];
           timeLimit = parseInt((row[2] || '20').trim(), 10) || 20;
           explanation = (row[3] || '').trim();
+        } else if (col1Lower === 'true_false' || col1Lower === 'đúng/sai' || (row.length <= 4 && (col1Lower === 'đúng' || col1Lower === 'sai' || col1Lower === 'true' || col1Lower === 'false'))) {
+          type = 'true_false';
+          options = ['Đúng', 'Sai'];
+          let rawVal = col1Lower;
+          if (col1Lower === 'true_false' || col1Lower === 'đúng/sai') {
+            rawVal = String(row[2] || '').trim().toLowerCase();
+            timeLimit = parseInt((row[3] || '20').trim(), 10) || 20;
+            explanation = (row[4] || '').trim();
+          } else {
+            timeLimit = parseInt((row[2] || '20').trim(), 10) || 20;
+            explanation = (row[3] || '').trim();
+          }
+          correctIndex = (rawVal === 'sai' || rawVal === 'false' || rawVal === '1' || rawVal === 'b') ? 1 : 0;
+        } else {
+          type = 'quiz';
+          if (row.length >= 5) {
+            options = [row[1] || '', row[2] || '', row[3] || '', row[4] || ''];
+          }
+          let correctRaw = (row[5] || '0').trim().toUpperCase();
+          if (correctRaw === 'A' || correctRaw === '1') correctIndex = 0;
+          else if (correctRaw === 'B' || correctRaw === '2') correctIndex = 1;
+          else if (correctRaw === 'C' || correctRaw === '3') correctIndex = 2;
+          else if (correctRaw === 'D' || correctRaw === '4') correctIndex = 3;
+          else {
+            const parsed = parseInt(correctRaw, 10);
+            if (!isNaN(parsed) && parsed >= 0 && parsed <= 3) correctIndex = parsed;
+            else correctIndex = 0;
+          }
+          timeLimit = parseInt((row[6] || '20').trim(), 10) || 20;
+          explanation = (row[7] || '').trim();
         }
-        correctIndex = (rawVal === 'đúng' || rawVal === 'true' || rawVal === '0' || rawVal === 'a') ? 0 : 1;
-      } else {
-        type = 'quiz';
-        if (row.length >= 5) {
-          options = [row[1] || '', row[2] || '', row[3] || '', row[4] || ''];
-        }
-        let correctRaw = (row[5] || '0').trim().toUpperCase();
-        if (correctRaw === 'A' || correctRaw === '1') correctIndex = 0;
-        else if (correctRaw === 'B' || correctRaw === '2') correctIndex = 1;
-        else if (correctRaw === 'C' || correctRaw === '3') correctIndex = 2;
-        else if (correctRaw === 'D' || correctRaw === '4') correctIndex = 3;
-        else {
-          const parsed = parseInt(correctRaw, 10);
-          if (!isNaN(parsed) && parsed >= 0 && parsed <= 3) correctIndex = parsed;
-        }
-        timeLimit = parseInt((row[6] || '20').trim(), 10) || 20;
-        explanation = (row[7] || '').trim();
       }
 
       questions.push({
