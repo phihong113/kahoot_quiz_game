@@ -781,6 +781,93 @@
     localStorage.setItem('kahoot_quizzes', JSON.stringify(state.quizzes));
   }
 
+  // Export Quiz to JSON file
+  function exportQuizToJSON(quiz) {
+    if (!quiz || !quiz.questions) return alert('Bộ câu hỏi rỗng!');
+    const exportData = {
+      title: quiz.title || 'Bộ Trắc Nghiệm',
+      questions: quiz.questions
+    };
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData, null, 2));
+    const downloadAnchor = document.createElement('a');
+    const filename = (quiz.title || 'quiz').replace(/[^a-zA-Z0-9_ -]/g, '_') + '.json';
+    downloadAnchor.setAttribute("href", dataStr);
+    downloadAnchor.setAttribute("download", filename);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+  }
+
+  // Export Quiz to CSV file
+  function exportQuizToCSV(quiz) {
+    if (!quiz || !quiz.questions || quiz.questions.length === 0) return alert('Bộ câu hỏi rỗng!');
+    
+    const headers = ['Loại câu hỏi', 'Câu hỏi', 'Phương án A', 'Phương án B', 'Phương án C', 'Phương án D', 'Đáp án đúng', 'Thời gian (giây)', 'Giải thích đáp án'];
+    const rows = [headers];
+
+    quiz.questions.forEach((q) => {
+      const qType = q.type || 'quiz';
+      const qText = q.questionText || '';
+      const opts = q.options || ['', '', '', ''];
+      const time = q.timeLimit || 20;
+      const exp = q.explanation || '';
+
+      let optA = opts[0] || '';
+      let optB = opts[1] || '';
+      let optC = opts[2] || '';
+      let optD = opts[3] || '';
+      let correct = '';
+
+      if (qType === 'type_answer') {
+        optA = q.correctAnswerText || opts[0] || '';
+        optB = '';
+        optC = '';
+        optD = '';
+        correct = optA;
+      } else if (qType === 'true_false') {
+        optA = opts[0] || 'Đúng';
+        optB = opts[1] || 'Sai';
+        optC = '';
+        optD = '';
+        correct = (q.correctIndex === 1) ? 'B' : 'A';
+      } else {
+        const labels = ['A', 'B', 'C', 'D'];
+        correct = labels[q.correctIndex || 0] || 'A';
+      }
+
+      const escapeCSV = (val) => {
+        const str = String(val || '');
+        if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes(';')) {
+          return '"' + str.replace(/"/g, '""') + '"';
+        }
+        return str;
+      };
+
+      rows.push([
+        qType,
+        escapeCSV(qText),
+        escapeCSV(optA),
+        escapeCSV(optB),
+        escapeCSV(optC),
+        escapeCSV(optD),
+        escapeCSV(correct),
+        time,
+        escapeCSV(exp)
+      ]);
+    });
+
+    const csvContent = "\uFEFF" + rows.map(r => r.join(',')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const filename = (quiz.title || 'quiz').replace(/[^a-zA-Z0-9_ -]/g, '_') + '.csv';
+    link.setAttribute('href', url);
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
   function renderQuizGrid() {
     const grid = document.getElementById('quizGrid');
     if (!grid) return;
@@ -798,14 +885,20 @@
           <div class="quiz-card-title">${escapeHtml(quiz.title)}</div>
           <div class="quiz-card-info"><i class="fa-solid fa-circle-question"></i> ${qCount} ${dict.questionsCountText || 'câu hỏi'}</div>
         </div>
-        <div class="quiz-card-actions" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-          <button class="btn-success btn-host-quiz" data-index="${index}" style="flex: 2;">
+        <div class="quiz-card-actions" style="display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.75rem;">
+          <button class="btn-success btn-host-quiz" data-index="${index}" style="flex: 2; min-width: 100px;">
             <i class="fa-solid fa-play"></i> ${dict.btnHost || 'HOST GAME'}
           </button>
-          <button class="btn-secondary btn-edit-quiz" data-index="${index}" title="Chỉnh sửa câu hỏi" style="flex: 1; padding: 0.4rem 0.6rem;">
+          <button class="btn-secondary btn-edit-quiz" data-index="${index}" title="Chỉnh sửa câu hỏi" style="padding: 0.4rem 0.6rem;">
             <i class="fa-solid fa-pen-to-square"></i> ${dict.btnEdit || 'Sửa'}
           </button>
-          <button class="btn-secondary btn-delete-quiz" data-index="${index}" style="padding: 0.4rem 0.6rem;">
+          <button class="btn-secondary btn-export-json" data-index="${index}" title="Xuất file JSON" style="padding: 0.4rem 0.5rem; color: #60a5fa; border-color: rgba(96,165,250,0.4);">
+            <i class="fa-solid fa-file-code"></i> JSON
+          </button>
+          <button class="btn-secondary btn-export-csv" data-index="${index}" title="Xuất file CSV (Excel)" style="padding: 0.4rem 0.5rem; color: #34d399; border-color: rgba(52,211,153,0.4);">
+            <i class="fa-solid fa-file-excel"></i> CSV
+          </button>
+          <button class="btn-secondary btn-delete-quiz" data-index="${index}" title="Xóa bộ câu hỏi này" style="padding: 0.4rem 0.6rem; color: #f87171;">
             <i class="fa-solid fa-trash"></i>
           </button>
         </div>
@@ -813,7 +906,7 @@
       grid.appendChild(card);
     });
 
-    // Event listeners for host / edit / delete
+    // Event listeners for host / edit / export / delete
     document.querySelectorAll('.btn-host-quiz').forEach((btn) => {
       btn.addEventListener('click', (e) => {
         const idx = e.currentTarget.getAttribute('data-index');
@@ -835,6 +928,20 @@
         renderEditorQuestions();
         const tabEd = document.querySelector('[data-tab="tabEditor"]');
         if (tabEd) tabEd.click();
+      });
+    });
+
+    document.querySelectorAll('.btn-export-json').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        const idx = e.currentTarget.getAttribute('data-index');
+        exportQuizToJSON(state.quizzes[idx]);
+      });
+    });
+
+    document.querySelectorAll('.btn-export-csv').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        const idx = e.currentTarget.getAttribute('data-index');
+        exportQuizToCSV(state.quizzes[idx]);
       });
     });
 
@@ -1988,6 +2095,24 @@
     document.querySelectorAll('.btn-save-editor').forEach((btn) => {
       btn.addEventListener('click', handleSaveEditorQuiz);
     });
+
+    const btnExportEditorJSON = document.getElementById('btnExportEditorJSON');
+    if (btnExportEditorJSON) {
+      btnExportEditorJSON.addEventListener('click', () => {
+        const title = document.getElementById('editorQuizTitle').value.trim() || 'Bài Trắc Nghiệm Soạn Thảo';
+        if (!state.editorQuestions || state.editorQuestions.length === 0) return alert('Bộ câu hỏi đang trống!');
+        exportQuizToJSON({ title, questions: state.editorQuestions });
+      });
+    }
+
+    const btnExportEditorCSV = document.getElementById('btnExportEditorCSV');
+    if (btnExportEditorCSV) {
+      btnExportEditorCSV.addEventListener('click', () => {
+        const title = document.getElementById('editorQuizTitle').value.trim() || 'Bài Trắc Nghiệm Soạn Thảo';
+        if (!state.editorQuestions || state.editorQuestions.length === 0) return alert('Bộ câu hỏi đang trống!');
+        exportQuizToCSV({ title, questions: state.editorQuestions });
+      });
+    }
 
     // Add Editor Question Button
     document.getElementById('btnAddEditorQuestion').addEventListener('click', () => {

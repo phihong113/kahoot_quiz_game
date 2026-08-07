@@ -1,5 +1,6 @@
 [
   {
+    "type": "quiz",
     "questionText": "Thủ đô của Việt Nam là thành phố nào?",
     "options": ["Đà Nẵng", "Hà Nội", "TP. Hồ Chí Minh", "Cần Thơ"],
     "correctIndex": 1,
@@ -7,6 +8,23 @@
     "explanation": "Hà Nội là thủ đô của Nước Cộng hòa Xã hội Chủ nghĩa Việt Nam."
   },
   {
+    "type": "true_false",
+    "questionText": "Mặt Trời mọc ở hướng Đông và lặn ở hướng Tây. Đúng hay Sai?",
+    "options": ["Đúng", "Sai"],
+    "correctIndex": 0,
+    "timeLimit": 15,
+    "explanation": "Đúng! Do Trái Đất tự quay quanh trục từ Tây sang Đông nên ta thấy Mặt Trời mọc ở hướng Đông."
+  },
+  {
+    "type": "type_answer",
+    "questionText": "Điền từ còn thiếu vào chỗ trống: 'Nhiễu điều phủ lấy giá gương, Người trong một nước phải ... nhau cùng'",
+    "options": ["thương"],
+    "correctAnswerText": "thương",
+    "timeLimit": 20,
+    "explanation": "Đáp án đúng là 'thương' (Thương nhau cùng)."
+  },
+  {
+    "type": "quiz",
     "questionText": "Kết quả của phép tính 15 + 27 là bao nhiêu?",
     "options": ["32", "40", "42", "45"],
     "correctIndex": 2,
@@ -14,24 +32,11 @@
     "explanation": "15 + 27 = 42."
   },
   {
-    "questionText": "Hành tinh nào gần Mặt Trời nhất trong Hệ Mặt Trời?",
-    "options": ["Sao Thủy", "Sao Kim", "Trái Đất", "Sao Hỏa"],
-    "correctIndex": 0,
+    "type": "type_answer",
+    "questionText": "Tính diện tích hình vuông có cạnh dài 5cm? (Chỉ nhập số)",
+    "options": ["25"],
+    "correctAnswerText": "25",
     "timeLimit": 20,
-    "explanation": "Sao Thủy (Mercury) là hành tinh gần Mặt Trời nhất."
-  },
-  {
-    "questionText": "Quốc gia nào có diện tích lớn nhất thế giới?",
-    "options": ["Trung Quốc", "Mỹ", "Nga", "Canada"],
-    "correctIndex": 2,
-    "timeLimit": 20,
-    "explanation": "Nga là quốc gia rộng lớn nhất trên thế giới."
-  },
-  {
-    "questionText": "Ngôn ngữ lập trình nào phổ biến nhất cho web front-end?",
-    "options": ["Python", "Java", "JavaScript", "C++"],
-    "correctIndex": 2,
-    "timeLimit": 20,
-    "explanation": "JavaScript là ngôn ngữ tiêu chuẩn duy nhất chạy trực tiếp trên hầu hết trình duyệt web."
+    "explanation": "Diện tích hình vuông = cạnh x cạnh = 5 x 5 = 25 cm²."
   }
 ]
