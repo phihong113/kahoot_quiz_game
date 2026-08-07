@@ -242,23 +242,29 @@
       </div>
 
       <!-- 4 Answer Option Cards -->
-      <div class="host-options-grid">
-        <div class="option-card red-option">
-          <div class="option-shape"><i class="fa-solid fa-caret-up"></i></div>
+      <div class="host-options-grid" id="hostOptionsGrid">
+        <div class="option-card red-option" id="hostCard0">
+          <div class="option-shape" id="hostShape0"><i class="fa-solid fa-caret-up"></i></div>
           <div class="option-text" id="hostOpt0">Đáp án A</div>
         </div>
-        <div class="option-card blue-option">
-          <div class="option-shape"><i class="fa-solid fa-diamond"></i></div>
+        <div class="option-card blue-option" id="hostCard1">
+          <div class="option-shape" id="hostShape1"><i class="fa-solid fa-diamond"></i></div>
           <div class="option-text" id="hostOpt1">Đáp án B</div>
         </div>
-        <div class="option-card yellow-option">
-          <div class="option-shape"><i class="fa-solid fa-circle"></i></div>
+        <div class="option-card yellow-option" id="hostCard2">
+          <div class="option-shape" id="hostShape2"><i class="fa-solid fa-circle"></i></div>
           <div class="option-text" id="hostOpt2">Đáp án C</div>
         </div>
-        <div class="option-card green-option">
-          <div class="option-shape"><i class="fa-solid fa-square"></i></div>
+        <div class="option-card green-option" id="hostCard3">
+          <div class="option-shape" id="hostShape3"><i class="fa-solid fa-square"></i></div>
           <div class="option-text" id="hostOpt3">Đáp án D</div>
         </div>
+      </div>
+
+      <!-- Type Answer Notice for Host -->
+      <div id="hostTypeAnswerNotice" style="display: none; text-align: center; margin: 2rem auto; padding: 2rem; background: rgba(255,255,255,0.08); border-radius: 20px; border: 1px solid rgba(255,255,255,0.18); max-width: 700px;">
+        <h3 style="color: #ffcc00; font-size: 1.4rem; margin-bottom: 0.5rem;"><i class="fa-solid fa-keyboard"></i> CÂU HỎI TỰ LUẬN / NHẬP ĐÁP ÁN</h3>
+        <p style="font-size: 1.05rem; opacity: 0.9;">Học sinh đang trực tiếp gõ câu trả lời chữ/số trên thiết bị cá nhân...</p>
       </div>
     </section>
 
@@ -435,18 +441,31 @@
         <div class="student-timer" id="studentTimer">20s</div>
       </div>
 
-      <div class="student-buttons-grid">
-        <button class="student-btn red-btn" data-choice="0">
-          <i class="fa-solid fa-caret-up"></i>
+      <div class="student-buttons-grid" id="studentChoiceGrid">
+        <button class="student-btn blue-btn" id="studentBtn0" data-choice="0">
+          <i class="fa-solid fa-caret-up" id="studentIcon0"></i>
+          <span class="student-btn-lbl" id="studentLbl0">A</span>
         </button>
-        <button class="student-btn blue-btn" data-choice="1">
-          <i class="fa-solid fa-diamond"></i>
+        <button class="student-btn red-btn" id="studentBtn1" data-choice="1">
+          <i class="fa-solid fa-diamond" id="studentIcon1"></i>
+          <span class="student-btn-lbl" id="studentLbl1">B</span>
         </button>
-        <button class="student-btn yellow-btn" data-choice="2">
-          <i class="fa-solid fa-circle"></i>
+        <button class="student-btn yellow-btn" id="studentBtn2" data-choice="2">
+          <i class="fa-solid fa-circle" id="studentIcon2"></i>
+          <span class="student-btn-lbl" id="studentLbl2">C</span>
         </button>
-        <button class="student-btn green-btn" data-choice="3">
-          <i class="fa-solid fa-square"></i>
+        <button class="student-btn green-btn" id="studentBtn3" data-choice="3">
+          <i class="fa-solid fa-square" id="studentIcon3"></i>
+          <span class="student-btn-lbl" id="studentLbl3">D</span>
+        </button>
+      </div>
+
+      <!-- Type Answer Box for Students -->
+      <div id="studentTypeAnswerContainer" style="display: none; padding: 1.5rem; text-align: center; max-width: 500px; margin: 1.5rem auto;">
+        <h3 style="color: #ffcc00; margin-bottom: 1rem; font-size: 1.2rem;"><i class="fa-solid fa-pen-nib"></i> Nhập câu trả lời của bạn:</h3>
+        <input type="text" id="inputStudentTypedAnswer" class="form-control" placeholder="Gõ câu trả lời vào đây..." style="font-size: 1.2rem; padding: 0.85rem; text-align: center; margin-bottom: 1.25rem; border-radius: 16px; background: rgba(0,0,0,0.4); border: 2px solid rgba(255,255,255,0.3); color: #fff;">
+        <button id="btnSubmitStudentTypedAnswer" class="btn-success btn-xl full-width pulse-btn">
+          <i class="fa-solid fa-paper-plane"></i> GỬI ĐÁP ÁN
         </button>
       </div>
     </section>

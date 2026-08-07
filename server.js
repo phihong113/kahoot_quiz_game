@@ -240,7 +240,7 @@ io.on('connection', (socket) => {
     console.log(`👤 Player ${nickname} joined room ${pin}`);
   });
 
-  socket.on('submit-answer', ({ pin, choiceIndex }) => {
+  socket.on('submit-answer', ({ pin, choiceIndex, typedAnswer }) => {
     const room = rooms[pin];
     if (!room || room.state !== 'QUESTION') return;
 
@@ -252,7 +252,22 @@ io.on('connection', (socket) => {
     if (room.answers[qIndex][socket.id] !== undefined) return; // Already answered
 
     const question = room.quiz.questions[qIndex];
-    const isCorrect = choiceIndex === question.correctIndex;
+    const qType = question.type || 'quiz';
+
+    let isCorrect = false;
+    if (qType === 'type_answer') {
+      const userStr = String(typedAnswer || '').trim().toLowerCase();
+      const targetStr = String(question.correctAnswerText || (question.options && question.options[0]) || '').trim().toLowerCase();
+
+      const cleanUser = userStr.replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, "").replace(/\s+/g, " ");
+      const cleanTarget = targetStr.replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, "").replace(/\s+/g, " ");
+      
+      const targetParts = cleanTarget.split(/[,|;]/).map(s => s.trim()).filter(Boolean);
+      isCorrect = targetParts.length > 0 ? targetParts.includes(cleanUser) : (cleanUser === cleanTarget);
+    } else {
+      isCorrect = (choiceIndex === question.correctIndex);
+    }
+
     const timeLimit = question.timeLimit || 20;
     const timeRatio = Math.max(0, room.timeLeft / timeLimit);
 
@@ -271,7 +286,8 @@ io.on('connection', (socket) => {
     }
 
     room.answers[qIndex][socket.id] = {
-      choiceIndex,
+      choiceIndex: choiceIndex !== undefined ? choiceIndex : -1,
+      typedAnswer: typedAnswer || '',
       isCorrect,
       pointsGained
     };
@@ -332,6 +348,7 @@ function sendQuestion(room) {
     index: qIndex,
     total: room.quiz.questions.length,
     questionText: question.questionText,
+    type: question.type || 'quiz',
     options: question.options,
     timeLimit: question.timeLimit || 20,
     imageUrl: question.imageUrl || ''
@@ -340,7 +357,8 @@ function sendQuestion(room) {
   // Host gets complete question including correctIndex
   const hostQuestion = {
     ...publicQuestion,
-    correctIndex: question.correctIndex
+    correctIndex: question.correctIndex,
+    correctAnswerText: question.correctAnswerText || (question.options && question.options[0]) || ''
   };
 
   io.to(room.hostSocketId).emit('host-question-start', hostQuestion);
@@ -369,17 +387,30 @@ function revealQuestionResults(room) {
 
   // Count answer distribution per option
   const stats = [0, 0, 0, 0];
+  const typedAnswersList = [];
   const qAnswers = room.answers[qIndex] || {};
-  Object.values(qAnswers).forEach((ans) => {
+
+  Object.entries(qAnswers).forEach(([sId, ans]) => {
     if (ans.choiceIndex >= 0 && ans.choiceIndex < 4) {
       stats[ans.choiceIndex]++;
+    }
+    if (ans.typedAnswer) {
+      const p = room.players[sId];
+      typedAnswersList.push({
+        nickname: p ? p.nickname : 'Học sinh',
+        text: ans.typedAnswer,
+        isCorrect: ans.isCorrect
+      });
     }
   });
 
   io.to(room.pin).emit('question-reveal', {
+    type: question.type || 'quiz',
     correctIndex: question.correctIndex,
+    correctAnswerText: question.correctAnswerText || (question.options && question.options[0]) || '',
     explanation: question.explanation || '',
     stats,
+    typedAnswersList,
     leaderboard: getLeaderboard(room)
   });
 }

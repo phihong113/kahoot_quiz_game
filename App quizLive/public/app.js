@@ -1250,29 +1250,60 @@
       const questionText = row[0] ? row[0].trim() : '';
       if (!questionText) continue;
 
+      let type = 'quiz';
       let options = ['A', 'B', 'C', 'D'];
-      if (row.length >= 5) {
-        options = [row[1] || '', row[2] || '', row[3] || '', row[4] || ''];
-      }
-
-      let correctRaw = (row[5] || '0').trim().toUpperCase();
+      let correctAnswerText = '';
       let correctIndex = 0;
-      if (correctRaw === 'A' || correctRaw === '1') correctIndex = 0;
-      else if (correctRaw === 'B' || correctRaw === '2') correctIndex = 1;
-      else if (correctRaw === 'C' || correctRaw === '3') correctIndex = 2;
-      else if (correctRaw === 'D' || correctRaw === '4') correctIndex = 3;
-      else {
-        const parsed = parseInt(correctRaw, 10);
-        if (!isNaN(parsed) && parsed >= 0 && parsed <= 3) correctIndex = parsed;
-      }
+      let timeLimit = 20;
+      let explanation = '';
 
-      let timeLimit = parseInt((row[6] || '20').trim(), 10) || 20;
-      let explanation = (row[7] || '').trim();
+      // Check if type is explicitly specified or infer from row length / contents
+      const firstColLower = questionText.toLowerCase();
+      const col1Lower = String(row[1] || '').trim().toLowerCase();
+
+      if (row.length === 2 || col1Lower === 'type_answer' || col1Lower === 'tự luận' || col1Lower === 'nhập đáp án') {
+        type = 'type_answer';
+        correctAnswerText = row[1] || '';
+        options = [correctAnswerText];
+        timeLimit = parseInt((row[2] || '20').trim(), 10) || 20;
+        explanation = (row[3] || '').trim();
+      } else if (col1Lower === 'true_false' || col1Lower === 'đúng/sai' || (row.length <= 4 && (col1Lower === 'đúng' || col1Lower === 'sai' || col1Lower === 'true' || col1Lower === 'false'))) {
+        type = 'true_false';
+        options = ['Đúng', 'Sai'];
+        let rawVal = col1Lower;
+        if (col1Lower === 'true_false' || col1Lower === 'đúng/sai') {
+          rawVal = String(row[2] || '').trim().toLowerCase();
+          timeLimit = parseInt((row[3] || '20').trim(), 10) || 20;
+          explanation = (row[4] || '').trim();
+        } else {
+          timeLimit = parseInt((row[2] || '20').trim(), 10) || 20;
+          explanation = (row[3] || '').trim();
+        }
+        correctIndex = (rawVal === 'đúng' || rawVal === 'true' || rawVal === '0' || rawVal === 'a') ? 0 : 1;
+      } else {
+        type = 'quiz';
+        if (row.length >= 5) {
+          options = [row[1] || '', row[2] || '', row[3] || '', row[4] || ''];
+        }
+        let correctRaw = (row[5] || '0').trim().toUpperCase();
+        if (correctRaw === 'A' || correctRaw === '1') correctIndex = 0;
+        else if (correctRaw === 'B' || correctRaw === '2') correctIndex = 1;
+        else if (correctRaw === 'C' || correctRaw === '3') correctIndex = 2;
+        else if (correctRaw === 'D' || correctRaw === '4') correctIndex = 3;
+        else {
+          const parsed = parseInt(correctRaw, 10);
+          if (!isNaN(parsed) && parsed >= 0 && parsed <= 3) correctIndex = parsed;
+        }
+        timeLimit = parseInt((row[6] || '20').trim(), 10) || 20;
+        explanation = (row[7] || '').trim();
+      }
 
       questions.push({
+        type,
         questionText,
         options,
         correctIndex,
+        correctAnswerText,
         timeLimit,
         explanation
       });
@@ -1308,21 +1339,86 @@
     document.getElementById('previewCount').innerText = state.importedQuestions.length;
 
     state.importedQuestions.forEach((q, idx) => {
+      if (!q.type) q.type = 'quiz';
       if (!q.options) q.options = ['A', 'B', 'C', 'D'];
       while (q.options.length < 4) q.options.push('Không có');
       if (q.correctIndex === undefined || q.correctIndex === null) q.correctIndex = 0;
       if (!q.timeLimit) q.timeLimit = 20;
 
+      const qType = q.type || 'quiz';
       const labels = ['A', 'B', 'C', 'D'];
       const correctLabel = labels[q.correctIndex || 0];
       const correctText = q.options && q.options[q.correctIndex] ? q.options[q.correctIndex] : correctLabel;
       if (!q.explanation || q.explanation.trim().length === 0) {
-        q.explanation = `Đáp án chính xác là phương án ${correctLabel}: ${correctText}`;
+        q.explanation = `Đáp án chính xác: ${qType === 'type_answer' ? (q.correctAnswerText || q.options[0]) : (qType === 'true_false' ? (q.correctIndex === 0 ? 'Đúng' : 'Sai') : correctText)}`;
       }
 
       const item = document.createElement('div');
       item.className = 'preview-q-card editable-q-card';
       item.style.cssText = 'background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.18); border-radius: 18px; padding: 1.25rem; margin-bottom: 1.2rem;';
+
+      let optionsHTML = '';
+      let correctSelectHTML = '';
+
+      if (qType === 'type_answer') {
+        optionsHTML = `
+          <div class="form-group" style="margin-bottom: 0.75rem;">
+            <label style="font-size: 0.88rem; color: #ffcc00;"><i class="fa-solid fa-key"></i> Đáp án đúng cần nhập (Chữ hoặc Số):</label>
+            <input type="text" class="form-control imp-correct-text" data-idx="${idx}" value="${escapeHtml(q.correctAnswerText || q.options[0] || '')}" placeholder="Ví dụ: Hà Nội hoặc 12.5 (Hoặc nhiều đáp án: Hà Nội, TP Hà Nội)">
+          </div>
+        `;
+      } else if (qType === 'true_false') {
+        optionsHTML = `
+          <label style="font-size: 0.88rem; opacity: 0.9; display: block; margin-bottom: 0.4rem;">2 Phương án Lựa chọn:</label>
+          <div class="preview-q-opts" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin-bottom: 0.75rem;">
+            <div class="input-group-opt" style="display: flex; align-items: center; gap: 0.5rem; background: rgba(0, 0, 0, 0.25); padding: 0.35rem 0.6rem; border-radius: 10px; border: 1px solid ${q.correctIndex === 0 ? '#10b981' : 'rgba(255, 255, 255, 0.15)'};">
+              <span style="background: #1368ce; color: #fff; font-weight: 800; font-size: 0.85rem; padding: 0.2rem 0.6rem; border-radius: 6px;">✔️</span>
+              <input type="text" class="form-control imp-opt" data-idx="${idx}" data-opt="0" value="${escapeHtml(q.options[0] || 'Đúng')}" placeholder="Đúng" style="border: none; background: transparent; padding: 0.2rem 0.4rem;">
+            </div>
+            <div class="input-group-opt" style="display: flex; align-items: center; gap: 0.5rem; background: rgba(0, 0, 0, 0.25); padding: 0.35rem 0.6rem; border-radius: 10px; border: 1px solid ${q.correctIndex === 1 ? '#10b981' : 'rgba(255, 255, 255, 0.15)'};">
+              <span style="background: #e21b3c; color: #fff; font-weight: 800; font-size: 0.85rem; padding: 0.2rem 0.6rem; border-radius: 6px;">❌</span>
+              <input type="text" class="form-control imp-opt" data-idx="${idx}" data-opt="1" value="${escapeHtml(q.options[1] || 'Sai')}" placeholder="Sai" style="border: none; background: transparent; padding: 0.2rem 0.4rem;">
+            </div>
+          </div>
+        `;
+        correctSelectHTML = `
+          <select class="form-control imp-correct" data-idx="${idx}" style="width: 100px; font-weight: bold; color: #10b981;">
+            <option value="0" ${q.correctIndex === 0 ? 'selected' : ''}>A. Đúng</option>
+            <option value="1" ${q.correctIndex === 1 ? 'selected' : ''}>B. Sai</option>
+          </select>
+        `;
+      } else {
+        // 'quiz'
+        optionsHTML = `
+          <label style="font-size: 0.88rem; opacity: 0.9; display: block; margin-bottom: 0.4rem;">4 Phương án trả lời:</label>
+          <div class="preview-q-opts" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin-bottom: 0.75rem;">
+            <div class="input-group-opt" style="display: flex; align-items: center; gap: 0.5rem; background: rgba(0, 0, 0, 0.25); padding: 0.35rem 0.6rem; border-radius: 10px; border: 1px solid ${q.correctIndex === 0 ? '#10b981' : 'rgba(255, 255, 255, 0.15)'};">
+              <span style="background: #e21b3c; color: #fff; font-weight: 800; font-size: 0.85rem; min-width: 26px; height: 26px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;">A</span>
+              <input type="text" class="form-control imp-opt" data-idx="${idx}" data-opt="0" value="${escapeHtml(q.options[0])}" placeholder="Đáp án A" style="border: none; background: transparent; padding: 0.2rem 0.4rem;">
+            </div>
+            <div class="input-group-opt" style="display: flex; align-items: center; gap: 0.5rem; background: rgba(0, 0, 0, 0.25); padding: 0.35rem 0.6rem; border-radius: 10px; border: 1px solid ${q.correctIndex === 1 ? '#10b981' : 'rgba(255, 255, 255, 0.15)'};">
+              <span style="background: #1368ce; color: #fff; font-weight: 800; font-size: 0.85rem; min-width: 26px; height: 26px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;">B</span>
+              <input type="text" class="form-control imp-opt" data-idx="${idx}" data-opt="1" value="${escapeHtml(q.options[1])}" placeholder="Đáp án B" style="border: none; background: transparent; padding: 0.2rem 0.4rem;">
+            </div>
+            <div class="input-group-opt" style="display: flex; align-items: center; gap: 0.5rem; background: rgba(0, 0, 0, 0.25); padding: 0.35rem 0.6rem; border-radius: 10px; border: 1px solid ${q.correctIndex === 2 ? '#10b981' : 'rgba(255, 255, 255, 0.15)'};">
+              <span style="background: #d89e00; color: #fff; font-weight: 800; font-size: 0.85rem; min-width: 26px; height: 26px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;">C</span>
+              <input type="text" class="form-control imp-opt" data-idx="${idx}" data-opt="2" value="${escapeHtml(q.options[2])}" placeholder="Đáp án C" style="border: none; background: transparent; padding: 0.2rem 0.4rem;">
+            </div>
+            <div class="input-group-opt" style="display: flex; align-items: center; gap: 0.5rem; background: rgba(0, 0, 0, 0.25); padding: 0.35rem 0.6rem; border-radius: 10px; border: 1px solid ${q.correctIndex === 3 ? '#10b981' : 'rgba(255, 255, 255, 0.15)'};">
+              <span style="background: #26890c; color: #fff; font-weight: 800; font-size: 0.85rem; min-width: 26px; height: 26px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;">D</span>
+              <input type="text" class="form-control imp-opt" data-idx="${idx}" data-opt="3" value="${escapeHtml(q.options[3])}" placeholder="Đáp án D" style="border: none; background: transparent; padding: 0.2rem 0.4rem;">
+            </div>
+          </div>
+        `;
+        correctSelectHTML = `
+          <select class="form-control imp-correct" data-idx="${idx}" style="width: 80px; font-weight: bold; color: #10b981;">
+            <option value="0" ${q.correctIndex === 0 ? 'selected' : ''}>A</option>
+            <option value="1" ${q.correctIndex === 1 ? 'selected' : ''}>B</option>
+            <option value="2" ${q.correctIndex === 2 ? 'selected' : ''}>C</option>
+            <option value="3" ${q.correctIndex === 3 ? 'selected' : ''}>D</option>
+          </select>
+        `;
+      }
 
       item.innerHTML = `
         <div class="q-header-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
@@ -1337,42 +1433,30 @@
           <input type="text" class="form-control imp-q-text" data-idx="${idx}" value="${escapeHtml(q.questionText)}" placeholder="Nhập câu hỏi...">
         </div>
 
-        <label style="font-size: 0.88rem; opacity: 0.9; display: block; margin-bottom: 0.4rem;">4 Phương án trả lời:</label>
-        <div class="preview-q-opts" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin-bottom: 0.75rem;">
-          <div class="input-group-opt" style="display: flex; align-items: center; gap: 0.5rem; background: rgba(0, 0, 0, 0.25); padding: 0.35rem 0.6rem; border-radius: 10px; border: 1px solid ${q.correctIndex === 0 ? '#10b981' : 'rgba(255, 255, 255, 0.15)'};">
-            <span style="background: #e21b3c; color: #fff; font-weight: 800; font-size: 0.85rem; min-width: 26px; height: 26px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;">A</span>
-            <input type="text" class="form-control imp-opt" data-idx="${idx}" data-opt="0" value="${escapeHtml(q.options[0])}" placeholder="Đáp án A" style="border: none; background: transparent; padding: 0.2rem 0.4rem;">
-          </div>
-          <div class="input-group-opt" style="display: flex; align-items: center; gap: 0.5rem; background: rgba(0, 0, 0, 0.25); padding: 0.35rem 0.6rem; border-radius: 10px; border: 1px solid ${q.correctIndex === 1 ? '#10b981' : 'rgba(255, 255, 255, 0.15)'};">
-            <span style="background: #1368ce; color: #fff; font-weight: 800; font-size: 0.85rem; min-width: 26px; height: 26px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;">B</span>
-            <input type="text" class="form-control imp-opt" data-idx="${idx}" data-opt="1" value="${escapeHtml(q.options[1])}" placeholder="Đáp án B" style="border: none; background: transparent; padding: 0.2rem 0.4rem;">
-          </div>
-          <div class="input-group-opt" style="display: flex; align-items: center; gap: 0.5rem; background: rgba(0, 0, 0, 0.25); padding: 0.35rem 0.6rem; border-radius: 10px; border: 1px solid ${q.correctIndex === 2 ? '#10b981' : 'rgba(255, 255, 255, 0.15)'};">
-            <span style="background: #d89e00; color: #fff; font-weight: 800; font-size: 0.85rem; min-width: 26px; height: 26px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;">C</span>
-            <input type="text" class="form-control imp-opt" data-idx="${idx}" data-opt="2" value="${escapeHtml(q.options[2])}" placeholder="Đáp án C" style="border: none; background: transparent; padding: 0.2rem 0.4rem;">
-          </div>
-          <div class="input-group-opt" style="display: flex; align-items: center; gap: 0.5rem; background: rgba(0, 0, 0, 0.25); padding: 0.35rem 0.6rem; border-radius: 10px; border: 1px solid ${q.correctIndex === 3 ? '#10b981' : 'rgba(255, 255, 255, 0.15)'};">
-            <span style="background: #26890c; color: #fff; font-weight: 800; font-size: 0.85rem; min-width: 26px; height: 26px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;">D</span>
-            <input type="text" class="form-control imp-opt" data-idx="${idx}" data-opt="3" value="${escapeHtml(q.options[3])}" placeholder="Đáp án D" style="border: none; background: transparent; padding: 0.2rem 0.4rem;">
-          </div>
-        </div>
-
-        <div class="inline-group" style="display: flex; gap: 1.5rem; align-items: center; flex-wrap: wrap; margin-bottom: 0.75rem;">
+        <div class="inline-group" style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; margin-bottom: 0.75rem;">
           <div style="display: flex; align-items: center; gap: 0.5rem;">
-            <label style="font-size: 0.88rem; margin: 0;">Đáp án đúng:</label>
-            <select class="form-control imp-correct" data-idx="${idx}" style="width: 80px; font-weight: bold; color: #10b981;">
-              <option value="0" ${q.correctIndex === 0 ? 'selected' : ''}>A</option>
-              <option value="1" ${q.correctIndex === 1 ? 'selected' : ''}>B</option>
-              <option value="2" ${q.correctIndex === 2 ? 'selected' : ''}>C</option>
-              <option value="3" ${q.correctIndex === 3 ? 'selected' : ''}>D</option>
+            <label style="font-size: 0.88rem; margin: 0; white-space: nowrap;">Kiểu câu hỏi:</label>
+            <select class="form-control imp-qtype" data-idx="${idx}" style="font-weight: bold; color: #ffcc00; background: rgba(0,0,0,0.3); padding: 0.3rem 0.6rem;">
+              <option value="quiz" ${qType === 'quiz' ? 'selected' : ''}>🧩 Quiz (4 đáp án)</option>
+              <option value="true_false" ${qType === 'true_false' ? 'selected' : ''}>⚖️ True / False (Đúng/Sai)</option>
+              <option value="type_answer" ${qType === 'type_answer' ? 'selected' : ''}>✍️ Type Answer (Nhập đáp án)</option>
             </select>
           </div>
+          
+          ${qType !== 'type_answer' ? `
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <label style="font-size: 0.88rem; margin: 0;">Đáp án đúng:</label>
+            ${correctSelectHTML}
+          </div>
+          ` : ''}
 
           <div style="display: flex; align-items: center; gap: 0.5rem;">
-            <label style="font-size: 0.88rem; margin: 0;">Thời gian (giây):</label>
+            <label style="font-size: 0.88rem; margin: 0;">Thời gian (s):</label>
             <input type="number" class="form-control imp-time" data-idx="${idx}" value="${q.timeLimit || 20}" style="width: 85px;">
           </div>
         </div>
+
+        ${optionsHTML}
 
         <div class="form-group" style="margin-bottom: 0;">
           <label style="font-size: 0.88rem; color: #ffcc00;"><i class="fa-solid fa-lightbulb"></i> Giải thích đáp án:</label>
@@ -1393,6 +1477,23 @@
     list.appendChild(addBtnContainer);
 
     // Input change listeners
+    document.querySelectorAll('.imp-qtype').forEach((sel) => {
+      sel.addEventListener('change', (e) => {
+        const i = e.target.getAttribute('data-idx');
+        const newType = e.target.value;
+        state.importedQuestions[i].type = newType;
+        if (newType === 'true_false') {
+          state.importedQuestions[i].options = ['Đúng', 'Sai'];
+          if (state.importedQuestions[i].correctIndex > 1) state.importedQuestions[i].correctIndex = 0;
+        } else if (newType === 'type_answer') {
+          if (!state.importedQuestions[i].correctAnswerText) {
+            state.importedQuestions[i].correctAnswerText = state.importedQuestions[i].options[0] || '';
+          }
+        }
+        renderImportPreviewList();
+      });
+    });
+
     document.querySelectorAll('.imp-q-text').forEach((inp) => {
       inp.addEventListener('input', (e) => {
         const i = e.target.getAttribute('data-idx');
@@ -1405,6 +1506,14 @@
         const i = e.target.getAttribute('data-idx');
         const optIdx = parseInt(e.target.getAttribute('data-opt'), 10);
         state.importedQuestions[i].options[optIdx] = e.target.value;
+      });
+    });
+
+    document.querySelectorAll('.imp-correct-text').forEach((inp) => {
+      inp.addEventListener('input', (e) => {
+        const i = e.target.getAttribute('data-idx');
+        state.importedQuestions[i].correctAnswerText = e.target.value;
+        state.importedQuestions[i].options[0] = e.target.value;
       });
     });
 
@@ -1473,14 +1582,80 @@
     list.innerHTML = '';
 
     state.editorQuestions.forEach((q, idx) => {
+      if (!q.type) q.type = 'quiz';
       if (!q.options) q.options = ['A', 'B', 'C', 'D'];
       while (q.options.length < 4) q.options.push('Không có');
       if (q.correctIndex === undefined || q.correctIndex === null) q.correctIndex = 0;
       if (!q.timeLimit) q.timeLimit = 20;
 
+      const qType = q.type || 'quiz';
       const el = document.createElement('div');
       el.className = 'preview-q-card editable-q-card';
       el.style.cssText = 'background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.18); border-radius: 18px; padding: 1.25rem; margin-bottom: 1.2rem;';
+
+      let optionsHTML = '';
+      let correctSelectHTML = '';
+
+      if (qType === 'type_answer') {
+        optionsHTML = `
+          <div class="form-group" style="margin-bottom: 0.75rem;">
+            <label style="font-size: 0.88rem; color: #ffcc00;"><i class="fa-solid fa-key"></i> Đáp án đúng cần nhập (Chữ hoặc Số):</label>
+            <input type="text" class="form-control ed-correct-text" data-idx="${idx}" value="${escapeHtml(q.correctAnswerText || q.options[0] || '')}" placeholder="Ví dụ: Hà Nội hoặc 12.5">
+          </div>
+        `;
+      } else if (qType === 'true_false') {
+        optionsHTML = `
+          <label style="font-size: 0.88rem; opacity: 0.9; display: block; margin-bottom: 0.4rem;">2 Phương án Lựa chọn:</label>
+          <div class="preview-q-opts" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin-bottom: 0.75rem;">
+            <div class="input-group-opt" style="display: flex; align-items: center; gap: 0.5rem; background: rgba(0, 0, 0, 0.25); padding: 0.35rem 0.6rem; border-radius: 10px; border: 1px solid ${q.correctIndex === 0 ? '#10b981' : 'rgba(255, 255, 255, 0.15)'};">
+              <span style="background: #1368ce; color: #fff; font-weight: 800; font-size: 0.85rem; padding: 0.2rem 0.6rem; border-radius: 6px;">✔️</span>
+              <input type="text" class="form-control ed-opt" data-idx="${idx}" data-opt="0" value="${escapeHtml(q.options[0] || 'Đúng')}" placeholder="Đúng" style="border: none; background: transparent; padding: 0.2rem 0.4rem;">
+            </div>
+            <div class="input-group-opt" style="display: flex; align-items: center; gap: 0.5rem; background: rgba(0, 0, 0, 0.25); padding: 0.35rem 0.6rem; border-radius: 10px; border: 1px solid ${q.correctIndex === 1 ? '#10b981' : 'rgba(255, 255, 255, 0.15)'};">
+              <span style="background: #e21b3c; color: #fff; font-weight: 800; font-size: 0.85rem; padding: 0.2rem 0.6rem; border-radius: 6px;">❌</span>
+              <input type="text" class="form-control ed-opt" data-idx="${idx}" data-opt="1" value="${escapeHtml(q.options[1] || 'Sai')}" placeholder="Sai" style="border: none; background: transparent; padding: 0.2rem 0.4rem;">
+            </div>
+          </div>
+        `;
+        correctSelectHTML = `
+          <select class="form-control ed-correct" data-idx="${idx}" style="width: 100px; font-weight: bold; color: #10b981;">
+            <option value="0" ${q.correctIndex === 0 ? 'selected' : ''}>A. Đúng</option>
+            <option value="1" ${q.correctIndex === 1 ? 'selected' : ''}>B. Sai</option>
+          </select>
+        `;
+      } else {
+        // 'quiz'
+        optionsHTML = `
+          <label style="font-size: 0.88rem; opacity: 0.9; display: block; margin-bottom: 0.4rem;">4 Phương án trả lời:</label>
+          <div class="preview-q-opts" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin-bottom: 0.75rem;">
+            <div class="input-group-opt" style="display: flex; align-items: center; gap: 0.5rem; background: rgba(0, 0, 0, 0.25); padding: 0.35rem 0.6rem; border-radius: 10px; border: 1px solid ${q.correctIndex === 0 ? '#10b981' : 'rgba(255, 255, 255, 0.15)'};">
+              <span style="background: #e21b3c; color: #fff; font-weight: 800; font-size: 0.85rem; min-width: 26px; height: 26px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;">A</span>
+              <input type="text" class="form-control ed-opt" data-idx="${idx}" data-opt="0" value="${escapeHtml(q.options[0])}" placeholder="Đáp án A" style="border: none; background: transparent; padding: 0.2rem 0.4rem;">
+            </div>
+            <div class="input-group-opt" style="display: flex; align-items: center; gap: 0.5rem; background: rgba(0, 0, 0, 0.25); padding: 0.35rem 0.6rem; border-radius: 10px; border: 1px solid ${q.correctIndex === 1 ? '#10b981' : 'rgba(255, 255, 255, 0.15)'};">
+              <span style="background: #1368ce; color: #fff; font-weight: 800; font-size: 0.85rem; min-width: 26px; height: 26px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;">B</span>
+              <input type="text" class="form-control ed-opt" data-idx="${idx}" data-opt="1" value="${escapeHtml(q.options[1])}" placeholder="Đáp án B" style="border: none; background: transparent; padding: 0.2rem 0.4rem;">
+            </div>
+            <div class="input-group-opt" style="display: flex; align-items: center; gap: 0.5rem; background: rgba(0, 0, 0, 0.25); padding: 0.35rem 0.6rem; border-radius: 10px; border: 1px solid ${q.correctIndex === 2 ? '#10b981' : 'rgba(255, 255, 255, 0.15)'};">
+              <span style="background: #d89e00; color: #fff; font-weight: 800; font-size: 0.85rem; min-width: 26px; height: 26px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;">C</span>
+              <input type="text" class="form-control ed-opt" data-idx="${idx}" data-opt="2" value="${escapeHtml(q.options[2])}" placeholder="Đáp án C" style="border: none; background: transparent; padding: 0.2rem 0.4rem;">
+            </div>
+            <div class="input-group-opt" style="display: flex; align-items: center; gap: 0.5rem; background: rgba(0, 0, 0, 0.25); padding: 0.35rem 0.6rem; border-radius: 10px; border: 1px solid ${q.correctIndex === 3 ? '#10b981' : 'rgba(255, 255, 255, 0.15)'};">
+              <span style="background: #26890c; color: #fff; font-weight: 800; font-size: 0.85rem; min-width: 26px; height: 26px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;">D</span>
+              <input type="text" class="form-control ed-opt" data-idx="${idx}" data-opt="3" value="${escapeHtml(q.options[3])}" placeholder="Đáp án D" style="border: none; background: transparent; padding: 0.2rem 0.4rem;">
+            </div>
+          </div>
+        `;
+        correctSelectHTML = `
+          <select class="form-control ed-correct" data-idx="${idx}" style="width: 80px; font-weight: bold; color: #10b981;">
+            <option value="0" ${q.correctIndex === 0 ? 'selected' : ''}>A</option>
+            <option value="1" ${q.correctIndex === 1 ? 'selected' : ''}>B</option>
+            <option value="2" ${q.correctIndex === 2 ? 'selected' : ''}>C</option>
+            <option value="3" ${q.correctIndex === 3 ? 'selected' : ''}>D</option>
+          </select>
+        `;
+      }
+
       el.innerHTML = `
         <div class="q-header-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
           <strong style="color: #ffcc00; font-size: 1.05rem;"><i class="fa-solid fa-pen-to-square"></i> Câu ${idx + 1}:</strong>
@@ -1494,42 +1669,30 @@
           <input type="text" class="form-control ed-q-text" data-idx="${idx}" value="${escapeHtml(q.questionText)}" placeholder="Nhập câu hỏi...">
         </div>
 
-        <label style="font-size: 0.88rem; opacity: 0.9; display: block; margin-bottom: 0.4rem;">4 Phương án trả lời:</label>
-        <div class="preview-q-opts" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin-bottom: 0.75rem;">
-          <div class="input-group-opt" style="display: flex; align-items: center; gap: 0.5rem; background: rgba(0, 0, 0, 0.25); padding: 0.35rem 0.6rem; border-radius: 10px; border: 1px solid ${q.correctIndex === 0 ? '#10b981' : 'rgba(255, 255, 255, 0.15)'};">
-            <span style="background: #e21b3c; color: #fff; font-weight: 800; font-size: 0.85rem; min-width: 26px; height: 26px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;">A</span>
-            <input type="text" class="form-control ed-opt" data-idx="${idx}" data-opt="0" value="${escapeHtml(q.options[0])}" placeholder="Đáp án A" style="border: none; background: transparent; padding: 0.2rem 0.4rem;">
-          </div>
-          <div class="input-group-opt" style="display: flex; align-items: center; gap: 0.5rem; background: rgba(0, 0, 0, 0.25); padding: 0.35rem 0.6rem; border-radius: 10px; border: 1px solid ${q.correctIndex === 1 ? '#10b981' : 'rgba(255, 255, 255, 0.15)'};">
-            <span style="background: #1368ce; color: #fff; font-weight: 800; font-size: 0.85rem; min-width: 26px; height: 26px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;">B</span>
-            <input type="text" class="form-control ed-opt" data-idx="${idx}" data-opt="1" value="${escapeHtml(q.options[1])}" placeholder="Đáp án B" style="border: none; background: transparent; padding: 0.2rem 0.4rem;">
-          </div>
-          <div class="input-group-opt" style="display: flex; align-items: center; gap: 0.5rem; background: rgba(0, 0, 0, 0.25); padding: 0.35rem 0.6rem; border-radius: 10px; border: 1px solid ${q.correctIndex === 2 ? '#10b981' : 'rgba(255, 255, 255, 0.15)'};">
-            <span style="background: #d89e00; color: #fff; font-weight: 800; font-size: 0.85rem; min-width: 26px; height: 26px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;">C</span>
-            <input type="text" class="form-control ed-opt" data-idx="${idx}" data-opt="2" value="${escapeHtml(q.options[2])}" placeholder="Đáp án C" style="border: none; background: transparent; padding: 0.2rem 0.4rem;">
-          </div>
-          <div class="input-group-opt" style="display: flex; align-items: center; gap: 0.5rem; background: rgba(0, 0, 0, 0.25); padding: 0.35rem 0.6rem; border-radius: 10px; border: 1px solid ${q.correctIndex === 3 ? '#10b981' : 'rgba(255, 255, 255, 0.15)'};">
-            <span style="background: #26890c; color: #fff; font-weight: 800; font-size: 0.85rem; min-width: 26px; height: 26px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;">D</span>
-            <input type="text" class="form-control ed-opt" data-idx="${idx}" data-opt="3" value="${escapeHtml(q.options[3])}" placeholder="Đáp án D" style="border: none; background: transparent; padding: 0.2rem 0.4rem;">
-          </div>
-        </div>
-
-        <div class="inline-group" style="display: flex; gap: 1.5rem; align-items: center; flex-wrap: wrap; margin-bottom: 0.75rem;">
+        <div class="inline-group" style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; margin-bottom: 0.75rem;">
           <div style="display: flex; align-items: center; gap: 0.5rem;">
-            <label style="font-size: 0.88rem; margin: 0;">Đáp án đúng:</label>
-            <select class="form-control ed-correct" data-idx="${idx}" style="width: 80px; font-weight: bold; color: #10b981;">
-              <option value="0" ${q.correctIndex === 0 ? 'selected' : ''}>A</option>
-              <option value="1" ${q.correctIndex === 1 ? 'selected' : ''}>B</option>
-              <option value="2" ${q.correctIndex === 2 ? 'selected' : ''}>C</option>
-              <option value="3" ${q.correctIndex === 3 ? 'selected' : ''}>D</option>
+            <label style="font-size: 0.88rem; margin: 0; white-space: nowrap;">Kiểu câu hỏi:</label>
+            <select class="form-control ed-qtype" data-idx="${idx}" style="font-weight: bold; color: #ffcc00; background: rgba(0,0,0,0.3); padding: 0.3rem 0.6rem;">
+              <option value="quiz" ${qType === 'quiz' ? 'selected' : ''}>🧩 Quiz (4 đáp án)</option>
+              <option value="true_false" ${qType === 'true_false' ? 'selected' : ''}>⚖️ True / False (Đúng/Sai)</option>
+              <option value="type_answer" ${qType === 'type_answer' ? 'selected' : ''}>✍️ Type Answer (Nhập đáp án)</option>
             </select>
           </div>
 
+          ${qType !== 'type_answer' ? `
           <div style="display: flex; align-items: center; gap: 0.5rem;">
-            <label style="font-size: 0.88rem; margin: 0;">Thời gian (giây):</label>
+            <label style="font-size: 0.88rem; margin: 0;">Đáp án đúng:</label>
+            ${correctSelectHTML}
+          </div>
+          ` : ''}
+
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <label style="font-size: 0.88rem; margin: 0;">Thời gian (s):</label>
             <input type="number" class="form-control ed-time" data-idx="${idx}" value="${q.timeLimit || 20}" style="width: 85px;">
           </div>
         </div>
+
+        ${optionsHTML}
 
         <div class="form-group" style="margin-bottom: 0;">
           <label style="font-size: 0.88rem; color: #ffcc00;"><i class="fa-solid fa-lightbulb"></i> Giải thích đáp án:</label>
@@ -1540,6 +1703,23 @@
     });
 
     // Listeners for ed-q inputs
+    document.querySelectorAll('.ed-qtype').forEach((sel) => {
+      sel.addEventListener('change', (e) => {
+        const i = e.target.getAttribute('data-idx');
+        const newType = e.target.value;
+        state.editorQuestions[i].type = newType;
+        if (newType === 'true_false') {
+          state.editorQuestions[i].options = ['Đúng', 'Sai'];
+          if (state.editorQuestions[i].correctIndex > 1) state.editorQuestions[i].correctIndex = 0;
+        } else if (newType === 'type_answer') {
+          if (!state.editorQuestions[i].correctAnswerText) {
+            state.editorQuestions[i].correctAnswerText = state.editorQuestions[i].options[0] || '';
+          }
+        }
+        renderEditorQuestions();
+      });
+    });
+
     document.querySelectorAll('.ed-q-text').forEach((inp) => {
       inp.addEventListener('input', (e) => {
         const i = e.target.getAttribute('data-idx');
@@ -1552,6 +1732,14 @@
         const i = e.target.getAttribute('data-idx');
         const o = e.target.getAttribute('data-opt');
         state.editorQuestions[i].options[o] = e.target.value;
+      });
+    });
+
+    document.querySelectorAll('.ed-correct-text').forEach((inp) => {
+      inp.addEventListener('input', (e) => {
+        const i = e.target.getAttribute('data-idx');
+        state.editorQuestions[i].correctAnswerText = e.target.value;
+        state.editorQuestions[i].options[0] = e.target.value;
       });
     });
 
@@ -1844,7 +2032,7 @@
       }
     });
 
-    // Student Answer Button Clicks
+    // Student Answer Button Clicks (Multiple Choice / True-False)
     document.querySelectorAll('.student-btn').forEach((btn) => {
       btn.addEventListener('click', (e) => {
         const choice = parseInt(e.currentTarget.getAttribute('data-choice'), 10);
@@ -1857,6 +2045,33 @@
         }
       });
     });
+
+    // Student Submit Typed Answer
+    const btnSubmitTyped = document.getElementById('btnSubmitStudentTypedAnswer');
+    if (btnSubmitTyped) {
+      btnSubmitTyped.addEventListener('click', () => {
+        const inp = document.getElementById('inputStudentTypedAnswer');
+        const typedVal = inp ? inp.value.trim() : '';
+        if (!typedVal) return alert('Vui lòng nhập câu trả lời của bạn!');
+        if (socket && state.currentPin) {
+          socket.emit('submit-answer', {
+            pin: state.currentPin,
+            typedAnswer: typedVal
+          });
+          showScreen('studentSubmitted');
+        }
+      });
+    }
+
+    const inpTyped = document.getElementById('inputStudentTypedAnswer');
+    if (inpTyped) {
+      inpTyped.addEventListener('keyup', (e) => {
+        if (e.key === 'Enter') {
+          const btnSubmitTyped = document.getElementById('btnSubmitStudentTypedAnswer');
+          if (btnSubmitTyped) btnSubmitTyped.click();
+        }
+      });
+    }
 
     // Sound toggle
     document.getElementById('btnSoundToggle').addEventListener('click', (e) => {
@@ -1955,10 +2170,43 @@
       document.getElementById('hostQuestionText').innerText = qData.questionText;
       document.getElementById('hostAnsweredCount').innerText = 0;
 
-      document.getElementById('hostOpt0').innerText = qData.options[0];
-      document.getElementById('hostOpt1').innerText = qData.options[1];
-      document.getElementById('hostOpt2').innerText = qData.options[2];
-      document.getElementById('hostOpt3').innerText = qData.options[3];
+      const qType = qData.type || 'quiz';
+      const grid = document.getElementById('hostOptionsGrid');
+      const notice = document.getElementById('hostTypeAnswerNotice');
+
+      if (qType === 'type_answer') {
+        if (grid) grid.style.display = 'none';
+        if (notice) notice.style.display = 'block';
+      } else if (qType === 'true_false') {
+        if (notice) notice.style.display = 'none';
+        if (grid) {
+          grid.style.display = 'grid';
+          grid.style.gridTemplateColumns = '1fr 1fr';
+        }
+        document.getElementById('hostCard0').style.display = 'flex';
+        document.getElementById('hostCard1').style.display = 'flex';
+        document.getElementById('hostCard2').style.display = 'none';
+        document.getElementById('hostCard3').style.display = 'none';
+
+        document.getElementById('hostOpt0').innerText = (qData.options && qData.options[0]) || 'Đúng';
+        document.getElementById('hostOpt1').innerText = (qData.options && qData.options[1]) || 'Sai';
+      } else {
+        // Default quiz (4 options)
+        if (notice) notice.style.display = 'none';
+        if (grid) {
+          grid.style.display = 'grid';
+          grid.style.gridTemplateColumns = '1fr 1fr';
+        }
+        document.getElementById('hostCard0').style.display = 'flex';
+        document.getElementById('hostCard1').style.display = 'flex';
+        document.getElementById('hostCard2').style.display = 'flex';
+        document.getElementById('hostCard3').style.display = 'flex';
+
+        document.getElementById('hostOpt0').innerText = qData.options[0] || 'A';
+        document.getElementById('hostOpt1').innerText = qData.options[1] || 'B';
+        document.getElementById('hostOpt2').innerText = qData.options[2] || 'C';
+        document.getElementById('hostOpt3').innerText = qData.options[3] || 'D';
+      }
 
       const timerBar = document.getElementById('hostTimerBar');
       timerBar.style.transition = 'none';
@@ -1981,6 +2229,53 @@
       showScreen('studentPlay');
       document.getElementById('studentQNum').innerText = qData.index + 1;
       document.getElementById('studentTimer').innerText = `${qData.timeLimit}s`;
+
+      const qType = qData.type || 'quiz';
+      const choiceGrid = document.getElementById('studentChoiceGrid');
+      const typeContainer = document.getElementById('studentTypeAnswerContainer');
+
+      if (qType === 'type_answer') {
+        if (choiceGrid) choiceGrid.style.display = 'none';
+        if (typeContainer) {
+          typeContainer.style.display = 'block';
+          const inp = document.getElementById('inputStudentTypedAnswer');
+          if (inp) {
+            inp.value = '';
+            inp.focus();
+          }
+        }
+      } else if (qType === 'true_false') {
+        if (typeContainer) typeContainer.style.display = 'none';
+        if (choiceGrid) {
+          choiceGrid.style.display = 'grid';
+          choiceGrid.style.gridTemplateColumns = '1fr 1fr';
+        }
+        const b0 = document.getElementById('studentBtn0');
+        const b1 = document.getElementById('studentBtn1');
+        const b2 = document.getElementById('studentBtn2');
+        const b3 = document.getElementById('studentBtn3');
+
+        if (b0) { b0.style.display = 'flex'; document.getElementById('studentLbl0').innerText = (qData.options && qData.options[0]) || 'ĐÚNG'; }
+        if (b1) { b1.style.display = 'flex'; document.getElementById('studentLbl1').innerText = (qData.options && qData.options[1]) || 'SAI'; }
+        if (b2) b2.style.display = 'none';
+        if (b3) b3.style.display = 'none';
+      } else {
+        // 'quiz'
+        if (typeContainer) typeContainer.style.display = 'none';
+        if (choiceGrid) {
+          choiceGrid.style.display = 'grid';
+          choiceGrid.style.gridTemplateColumns = '1fr 1fr';
+        }
+        const b0 = document.getElementById('studentBtn0');
+        const b1 = document.getElementById('studentBtn1');
+        const b2 = document.getElementById('studentBtn2');
+        const b3 = document.getElementById('studentBtn3');
+
+        if (b0) { b0.style.display = 'flex'; document.getElementById('studentLbl0').innerText = 'A'; }
+        if (b1) { b1.style.display = 'flex'; document.getElementById('studentLbl1').innerText = 'B'; }
+        if (b2) { b2.style.display = 'flex'; document.getElementById('studentLbl2').innerText = 'C'; }
+        if (b3) { b3.style.display = 'flex'; document.getElementById('studentLbl3').innerText = 'D'; }
+      }
     });
 
     // Timer Tick
@@ -1997,27 +2292,64 @@
     socket.on('answer-received', ({ isCorrect, pointsGained, totalScore, streak }) => {
       state.studentInfo.score = totalScore;
       state.studentInfo.streak = streak;
+      state.studentInfo.lastAnswerCorrect = isCorrect;
+      state.studentInfo.lastPointsGained = pointsGained;
     });
 
     // Question Reveal (Stats & Correct Answer)
-    socket.on('question-reveal', ({ correctIndex, explanation, stats }) => {
+    socket.on('question-reveal', ({ type, correctIndex, correctAnswerText, explanation, stats, typedAnswersList }) => {
       stopKahootBgMusic();
       playSoundFanfare();
+
+      const qType = type || 'quiz';
 
       if (state.role === 'TEACHER') {
         showScreen('teacherReveal');
         const labels = ['A', 'B', 'C', 'D'];
-        document.getElementById('correctAnswerLabel').innerText = `${labels[correctIndex]}`;
+
+        if (qType === 'type_answer') {
+          document.getElementById('correctAnswerLabel').innerText = `${correctAnswerText || 'Chính xác'}`;
+        } else if (qType === 'true_false') {
+          const tfLabels = ['Đúng (A)', 'Sai (B)'];
+          document.getElementById('correctAnswerLabel').innerText = `${tfLabels[correctIndex || 0]}`;
+        } else {
+          document.getElementById('correctAnswerLabel').innerText = `${labels[correctIndex || 0]}`;
+        }
+
+        // Handle Chart bars visibility
+        const col2 = document.querySelector('.chart-col.yellow-col');
+        const col3 = document.querySelector('.chart-col.green-col');
+
+        if (qType === 'true_false') {
+          if (col2) col2.style.display = 'none';
+          if (col3) col3.style.display = 'none';
+        } else {
+          if (col2) col2.style.display = 'flex';
+          if (col3) col3.style.display = 'flex';
+        }
 
         // Handle Explanation Box Display (Respect Settings Toggle)
         const expBox = document.getElementById('explanationBox');
         const expText = document.getElementById('explanationText');
         if (expBox && expText) {
           if (state.settings.showExplanation) {
-            if (explanation && explanation.trim().length > 0) {
-              expText.innerText = explanation;
+            let desc = explanation || '';
+            if (!desc.trim()) {
+              if (qType === 'type_answer') {
+                desc = `Đáp án đúng cần nhập là: "${correctAnswerText}"`;
+              } else if (qType === 'true_false') {
+                desc = `Đáp án chính xác là: ${correctIndex === 0 ? 'Đúng' : 'Sai'}`;
+              } else {
+                desc = `Đáp án chính xác là phương án ${labels[correctIndex || 0]}`;
+              }
+            }
+
+            if (qType === 'type_answer' && typedAnswersList && typedAnswersList.length > 0) {
+              const listHTML = typedAnswersList.map(item => `<li><strong>${escapeHtml(item.nickname)}:</strong> "${escapeHtml(item.text)}" ${item.isCorrect ? '✅' : '❌'}</li>`).join('');
+              desc += `<br><br><strong>Danh sách câu trả lời của Học sinh:</strong><ul style="text-align: left; margin-top: 0.5rem; max-height: 150px; overflow-y: auto;">${listHTML}</ul>`;
+              expText.innerHTML = desc;
             } else {
-              expText.innerText = `Đáp án chính xác là phương án ${labels[correctIndex]}. Hãy chú ý phân tích kỹ câu hỏi này để đạt điểm cao hơn nhé!`;
+              expText.innerText = desc;
             }
             expBox.style.display = 'block';
           } else {
@@ -2027,9 +2359,13 @@
 
         const maxCount = Math.max(...stats, 1);
         stats.forEach((count, i) => {
-          document.getElementById(`statCount${i}`).innerText = count;
-          const pct = Math.round((count / maxCount) * 100);
-          document.getElementById(`statBar${i}`).style.height = `${pct}%`;
+          const countElem = document.getElementById(`statCount${i}`);
+          const barElem = document.getElementById(`statBar${i}`);
+          if (countElem) countElem.innerText = count;
+          if (barElem) {
+            const pct = Math.round((count / maxCount) * 100);
+            barElem.style.height = `${pct}%`;
+          }
         });
       } else if (state.role === 'STUDENT') {
         // Show result feedback to student
@@ -2045,16 +2381,16 @@
         if (card.classList.contains('correct-bg')) card.classList.remove('correct-bg');
         if (card.classList.contains('wrong-bg')) card.classList.remove('wrong-bg');
 
-        if (state.studentInfo.streak > 0) {
+        if (state.studentInfo.lastAnswerCorrect) {
           card.classList.add('correct-bg');
           icon.innerHTML = '<i class="fa-solid fa-circle-check"></i>';
           title.innerText = 'ĐÚNG RỒI! 🎉';
-          pts.innerText = `+${state.studentInfo.score} điểm!`;
+          pts.innerText = `+${state.studentInfo.lastPointsGained || 0} điểm!`;
           playSoundCorrect();
         } else {
           card.classList.add('wrong-bg');
           icon.innerHTML = '<i class="fa-solid fa-circle-xmark"></i>';
-          title.innerText = 'RẤT TIẾC, CHƯA ĐÚNG!';
+          title.innerText = 'CHƯA CHÍNH XÁC!';
           pts.innerText = '+0 điểm';
           playSoundWrong();
         }
