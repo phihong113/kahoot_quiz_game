@@ -1867,6 +1867,29 @@
       });
     }
 
+    // Button "+ Tạo Bộ Câu Hỏi Mới"
+    const btnCreateNewQuiz = document.getElementById('btnCreateNewQuiz');
+    if (btnCreateNewQuiz) {
+      btnCreateNewQuiz.addEventListener('click', () => {
+        state.editingQuizIndex = null;
+        const edTitle = document.getElementById('editorQuizTitle');
+        if (edTitle) edTitle.value = '';
+        state.editorQuestions = [
+          {
+            type: 'quiz',
+            questionText: 'Nội dung câu hỏi số 1?',
+            options: ['Lựa chọn A', 'Lựa chọn B', 'Lựa chọn C', 'Lựa chọn D'],
+            correctIndex: 0,
+            timeLimit: 20,
+            explanation: ''
+          }
+        ];
+        renderEditorQuestions();
+        const tabEd = document.querySelector('[data-tab="tabEditor"]');
+        if (tabEd) tabEd.click();
+      });
+    }
+
     // Tabs navigation in Teacher Dashboard
     document.querySelectorAll('.tab-btn').forEach((btn) => {
       btn.addEventListener('click', (e) => {
@@ -1891,24 +1914,28 @@
     const dropZone = document.getElementById('dropZone');
     const fileInput = document.getElementById('fileInput');
 
-    fileInput.addEventListener('change', (e) => {
-      if (e.target.files.length > 0) handleFileImport(e.target.files[0]);
-    });
+    if (fileInput) {
+      fileInput.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) handleFileImport(e.target.files[0]);
+      });
+    }
 
-    dropZone.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      dropZone.style.borderColor = '#ffcc00';
-    });
+    if (dropZone) {
+      dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.style.borderColor = '#ffcc00';
+      });
 
-    dropZone.addEventListener('dragleave', () => {
-      dropZone.style.borderColor = 'rgba(255, 255, 255, 0.4)';
-    });
+      dropZone.addEventListener('dragleave', () => {
+        dropZone.style.borderColor = 'rgba(255, 255, 255, 0.4)';
+      });
 
-    dropZone.addEventListener('drop', (e) => {
-      e.preventDefault();
-      dropZone.style.borderColor = 'rgba(255, 255, 255, 0.4)';
-      if (e.dataTransfer.files.length > 0) handleFileImport(e.dataTransfer.files[0]);
-    });
+      dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.style.borderColor = 'rgba(255, 255, 255, 0.4)';
+        if (e.dataTransfer.files.length > 0) handleFileImport(e.dataTransfer.files[0]);
+      });
+    }
 
     // Save Imported Quiz
     const btnSaveImported = document.getElementById('btnSaveImportedQuiz');
@@ -1933,33 +1960,34 @@
       });
     }
 
-    // Save Editor Quiz
-    const btnSaveEditorQuiz = document.getElementById('btnSaveEditorQuiz');
-    if (btnSaveEditorQuiz) {
-      btnSaveEditorQuiz.addEventListener('click', () => {
-        const title = document.getElementById('editorQuizTitle').value.trim() || 'Bài Trắc Nghiệm Soạn Thảo';
-        if (state.editorQuestions.length === 0) return alert('Vui lòng thêm ít nhất 1 câu hỏi!');
+    // Save Editor Quiz (Both Top & Bottom Buttons)
+    const handleSaveEditorQuiz = () => {
+      const title = document.getElementById('editorQuizTitle').value.trim() || 'Bài Trắc Nghiệm Soạn Thảo';
+      if (!state.editorQuestions || state.editorQuestions.length === 0) return alert('Vui lòng thêm ít nhất 1 câu hỏi!');
 
-        if (state.editingQuizIndex !== undefined && state.editingQuizIndex !== null && state.quizzes[state.editingQuizIndex]) {
-          state.quizzes[state.editingQuizIndex].title = title;
-          state.quizzes[state.editingQuizIndex].questions = state.editorQuestions;
-          state.editingQuizIndex = null;
-          alert('Đã cập nhật bộ câu hỏi thành công!');
-        } else {
-          state.quizzes.push({
-            id: 'quiz_' + Date.now(),
-            title,
-            questions: state.editorQuestions
-          });
-          alert('Đã lưu bộ câu hỏi soạn thảo thành công!');
-        }
+      if (state.editingQuizIndex !== undefined && state.editingQuizIndex !== null && state.quizzes[state.editingQuizIndex]) {
+        state.quizzes[state.editingQuizIndex].title = title;
+        state.quizzes[state.editingQuizIndex].questions = state.editorQuestions;
+        state.editingQuizIndex = null;
+        alert('Đã cập nhật bộ câu hỏi thành công!');
+      } else {
+        state.quizzes.push({
+          id: 'quiz_' + Date.now(),
+          title,
+          questions: state.editorQuestions
+        });
+        alert('Đã lưu bộ câu hỏi soạn thảo thành công!');
+      }
 
-        saveQuizzes();
-        renderQuizGrid();
-        const tabMyQuizzes = document.querySelector('[data-tab="tabMyQuizzes"]');
-        if (tabMyQuizzes) tabMyQuizzes.click();
-      });
-    }
+      saveQuizzes();
+      renderQuizGrid();
+      const tabMyQuizzes = document.querySelector('[data-tab="tabMyQuizzes"]');
+      if (tabMyQuizzes) tabMyQuizzes.click();
+    };
+
+    document.querySelectorAll('.btn-save-editor').forEach((btn) => {
+      btn.addEventListener('click', handleSaveEditorQuiz);
+    });
 
     // Add Editor Question Button
     document.getElementById('btnAddEditorQuestion').addEventListener('click', () => {

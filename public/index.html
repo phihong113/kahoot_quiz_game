@@ -173,18 +173,23 @@
       <!-- Tab Content 3: Editor -->
       <div id="tabEditor" class="tab-content">
         <div class="editor-container">
-          <div class="editor-header">
+          <div class="editor-header" style="margin-bottom: 1.2rem;">
             <input type="text" id="editorQuizTitle" class="form-control title-input" placeholder="Nhập tiêu đề Bộ Câu Hỏi...">
-            <button id="btnSaveEditorQuiz" class="btn-primary"><i class="fa-solid fa-check"></i> Lưu Bài Trắc Nghiệm</button>
+            <button class="btn-primary btn-save-editor"><i class="fa-solid fa-floppy-disk"></i> Lưu Bài Trắc Nghiệm</button>
           </div>
 
           <div id="editorQuestionsList" class="editor-questions-list">
             <!-- Questions added dynamically -->
           </div>
 
-          <button id="btnAddEditorQuestion" class="btn-dashed full-width">
-            <i class="fa-solid fa-plus"></i> Thêm Câu Hỏi Mới
-          </button>
+          <div class="editor-bottom-actions" style="margin-top: 1.2rem; display: flex; flex-direction: column; gap: 0.8rem;">
+            <button id="btnAddEditorQuestion" class="btn-dashed full-width" style="padding: 0.85rem; font-size: 1rem; font-weight: 600;">
+              <i class="fa-solid fa-plus"></i> Thêm Câu Hỏi Mới
+            </button>
+            <button id="btnSaveEditorQuiz" class="btn-success btn-lg full-width btn-save-editor" style="padding: 0.95rem; font-size: 1.1rem; font-weight: 700; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);">
+              <i class="fa-solid fa-floppy-disk"></i> Lưu Bài Trắc Nghiệm
+            </button>
+          </div>
         </div>
       </div>
 
